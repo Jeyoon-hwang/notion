@@ -2,7 +2,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/drawing_stroke.dart';
 
-enum ShapeType2D { circle, rectangle, square, triangle, line, arrow, pentagon, hexagon, star }
+enum ShapeType2D {
+  circle, rectangle, square, triangle, line, arrow, pentagon, hexagon, star,
+  // Middle school geometry shapes
+  parallelogram, rhombus, trapezoid, ellipse, sector, arc,
+  rightAngle, tangent, chord, heptagon, octagon, nonagon, decagon
+}
 enum ShapeType3D { cube, cylinder, pyramid, sphere, cone, prism }
 
 class ShapeDrawingService {
@@ -382,6 +387,230 @@ class ShapeDrawingService {
     points.add(DrawingPoint(offset: frontBottomLeft, pressure: 0.5));
 
     return points;
+  }
+
+  // Middle school geometry shapes
+  List<DrawingPoint> drawParallelogram(Offset topLeft, double width, double height, {double skew = 30}) {
+    final skewOffset = height * tan(skew * pi / 180);
+    return [
+      DrawingPoint(offset: topLeft, pressure: 0.5),
+      DrawingPoint(offset: Offset(topLeft.dx + width, topLeft.dy), pressure: 0.5),
+      DrawingPoint(offset: Offset(topLeft.dx + width - skewOffset, topLeft.dy + height), pressure: 0.5),
+      DrawingPoint(offset: Offset(topLeft.dx - skewOffset, topLeft.dy + height), pressure: 0.5),
+      DrawingPoint(offset: topLeft, pressure: 0.5),
+    ];
+  }
+
+  List<DrawingPoint> drawRhombus(Offset center, double size) {
+    final halfSize = size / 2;
+    return [
+      DrawingPoint(offset: Offset(center.dx, center.dy - halfSize), pressure: 0.5),
+      DrawingPoint(offset: Offset(center.dx + halfSize, center.dy), pressure: 0.5),
+      DrawingPoint(offset: Offset(center.dx, center.dy + halfSize), pressure: 0.5),
+      DrawingPoint(offset: Offset(center.dx - halfSize, center.dy), pressure: 0.5),
+      DrawingPoint(offset: Offset(center.dx, center.dy - halfSize), pressure: 0.5),
+    ];
+  }
+
+  List<DrawingPoint> drawTrapezoid(Offset topLeft, double topWidth, double bottomWidth, double height) {
+    final widthDiff = (bottomWidth - topWidth) / 2;
+    return [
+      DrawingPoint(offset: topLeft, pressure: 0.5),
+      DrawingPoint(offset: Offset(topLeft.dx + topWidth, topLeft.dy), pressure: 0.5),
+      DrawingPoint(offset: Offset(topLeft.dx + topWidth + widthDiff, topLeft.dy + height), pressure: 0.5),
+      DrawingPoint(offset: Offset(topLeft.dx - widthDiff, topLeft.dy + height), pressure: 0.5),
+      DrawingPoint(offset: topLeft, pressure: 0.5),
+    ];
+  }
+
+  List<DrawingPoint> drawEllipse(Offset center, double radiusX, double radiusY) {
+    final points = <DrawingPoint>[];
+    for (int i = 0; i <= 360; i += 2) {
+      final angle = i * pi / 180;
+      points.add(DrawingPoint(
+        offset: Offset(
+          center.dx + radiusX * cos(angle),
+          center.dy + radiusY * sin(angle),
+        ),
+        pressure: 0.5,
+      ));
+    }
+    return points;
+  }
+
+  List<DrawingPoint> drawSector(Offset center, double radius, {double startAngle = 0, double sweepAngle = 90}) {
+    final points = <DrawingPoint>[];
+
+    // Add center point
+    points.add(DrawingPoint(offset: center, pressure: 0.5));
+
+    // Draw arc
+    final startRad = startAngle * pi / 180;
+    final sweepRad = sweepAngle * pi / 180;
+
+    for (double i = 0; i <= sweepAngle; i += 2) {
+      final angle = startRad + (i * pi / 180);
+      points.add(DrawingPoint(
+        offset: Offset(
+          center.dx + radius * cos(angle),
+          center.dy + radius * sin(angle),
+        ),
+        pressure: 0.5,
+      ));
+    }
+
+    // Back to center
+    points.add(DrawingPoint(offset: center, pressure: 0.5));
+
+    return points;
+  }
+
+  List<DrawingPoint> drawArc(Offset center, double radius, {double startAngle = 0, double sweepAngle = 120}) {
+    final points = <DrawingPoint>[];
+    final startRad = startAngle * pi / 180;
+
+    for (double i = 0; i <= sweepAngle; i += 2) {
+      final angle = startRad + (i * pi / 180);
+      points.add(DrawingPoint(
+        offset: Offset(
+          center.dx + radius * cos(angle),
+          center.dy + radius * sin(angle),
+        ),
+        pressure: 0.5,
+      ));
+    }
+
+    return points;
+  }
+
+  List<DrawingPoint> drawRightAngle(Offset vertex, double size, {double rotation = 0}) {
+    final points = <DrawingPoint>[];
+    final rotRad = rotation * pi / 180;
+
+    // Right angle symbol (small square at vertex)
+    final squareSize = size * 0.2;
+
+    final p1 = Offset(
+      vertex.dx + squareSize * cos(rotRad),
+      vertex.dy + squareSize * sin(rotRad),
+    );
+    final p2 = Offset(
+      vertex.dx + squareSize * cos(rotRad) + squareSize * cos(rotRad + pi / 2),
+      vertex.dy + squareSize * sin(rotRad) + squareSize * sin(rotRad + pi / 2),
+    );
+    final p3 = Offset(
+      vertex.dx + squareSize * cos(rotRad + pi / 2),
+      vertex.dy + squareSize * sin(rotRad + pi / 2),
+    );
+
+    points.add(DrawingPoint(offset: p1, pressure: 0.5));
+    points.add(DrawingPoint(offset: p2, pressure: 0.5));
+    points.add(DrawingPoint(offset: p3, pressure: 0.5));
+
+    // Add the two arms of the angle
+    final arm1End = Offset(
+      vertex.dx + size * cos(rotRad),
+      vertex.dy + size * sin(rotRad),
+    );
+    final arm2End = Offset(
+      vertex.dx + size * cos(rotRad + pi / 2),
+      vertex.dy + size * sin(rotRad + pi / 2),
+    );
+
+    points.add(DrawingPoint(offset: arm1End, pressure: 0.5));
+    points.add(DrawingPoint(offset: vertex, pressure: 0.5));
+    points.add(DrawingPoint(offset: arm2End, pressure: 0.5));
+
+    return points;
+  }
+
+  List<DrawingPoint> drawTangent(Offset circleCenter, double radius, Offset touchPoint) {
+    final points = <DrawingPoint>[];
+
+    // Draw circle
+    for (int i = 0; i <= 360; i += 3) {
+      final angle = i * pi / 180;
+      points.add(DrawingPoint(
+        offset: Offset(
+          circleCenter.dx + radius * cos(angle),
+          circleCenter.dy + radius * sin(angle),
+        ),
+        pressure: 0.5,
+      ));
+    }
+
+    // Draw tangent line (perpendicular to radius at touch point)
+    final angleToTouch = atan2(touchPoint.dy - circleCenter.dy, touchPoint.dx - circleCenter.dx);
+    final perpAngle = angleToTouch + pi / 2;
+
+    final tangentLength = radius * 2;
+    final tangentStart = Offset(
+      touchPoint.dx - tangentLength / 2 * cos(perpAngle),
+      touchPoint.dy - tangentLength / 2 * sin(perpAngle),
+    );
+    final tangentEnd = Offset(
+      touchPoint.dx + tangentLength / 2 * cos(perpAngle),
+      touchPoint.dy + tangentLength / 2 * sin(perpAngle),
+    );
+
+    points.add(DrawingPoint(offset: tangentStart, pressure: 0.5));
+    points.add(DrawingPoint(offset: tangentEnd, pressure: 0.5));
+
+    // Draw radius to touch point
+    points.add(DrawingPoint(offset: circleCenter, pressure: 0.5));
+    points.add(DrawingPoint(offset: touchPoint, pressure: 0.5));
+
+    return points;
+  }
+
+  List<DrawingPoint> drawChord(Offset center, double radius, {double startAngle = 30, double endAngle = 150}) {
+    final points = <DrawingPoint>[];
+
+    // Draw circle
+    for (int i = 0; i <= 360; i += 3) {
+      final angle = i * pi / 180;
+      points.add(DrawingPoint(
+        offset: Offset(
+          center.dx + radius * cos(angle),
+          center.dy + radius * sin(angle),
+        ),
+        pressure: 0.5,
+      ));
+    }
+
+    // Draw chord
+    final startRad = startAngle * pi / 180;
+    final endRad = endAngle * pi / 180;
+
+    final startPoint = Offset(
+      center.dx + radius * cos(startRad),
+      center.dy + radius * sin(startRad),
+    );
+    final endPoint = Offset(
+      center.dx + radius * cos(endRad),
+      center.dy + radius * sin(endRad),
+    );
+
+    points.add(DrawingPoint(offset: startPoint, pressure: 0.5));
+    points.add(DrawingPoint(offset: endPoint, pressure: 0.5));
+
+    return points;
+  }
+
+  List<DrawingPoint> drawHeptagon(Offset center, double radius) {
+    return _drawRegularPolygon(center, radius, 7);
+  }
+
+  List<DrawingPoint> drawOctagon(Offset center, double radius) {
+    return _drawRegularPolygon(center, radius, 8);
+  }
+
+  List<DrawingPoint> drawNonagon(Offset center, double radius) {
+    return _drawRegularPolygon(center, radius, 9);
+  }
+
+  List<DrawingPoint> drawDecagon(Offset center, double radius) {
+    return _drawRegularPolygon(center, radius, 10);
   }
 
   // Helper method for regular polygons

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
+import '../screens/settings_screen.dart';
 
 class AppHeader extends StatelessWidget {
   final GlobalKey repaintBoundaryKey;
@@ -76,6 +77,19 @@ class AppHeader extends StatelessWidget {
                     _IconButton(
                       icon: provider.isDarkMode ? '☀️' : '🌙',
                       onTap: provider.toggleDarkMode,
+                      isDarkMode: provider.isDarkMode,
+                    ),
+                    const SizedBox(width: 12),
+                    _IconButton(
+                      icon: '⚙️',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const SettingsScreen(),
+                          ),
+                        );
+                      },
                       isDarkMode: provider.isDarkMode,
                     ),
                   ],

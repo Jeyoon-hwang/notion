@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_math_fork/flutter_math.dart';
 import '../providers/drawing_provider.dart';
 import '../models/drawing_stroke.dart';
+import '../models/text_object.dart';
+import '../widgets/text_input_dialog.dart';
 
 class DrawingCanvas extends StatelessWidget {
   final GlobalKey repaintBoundaryKey;
@@ -13,6 +16,16 @@ class DrawingCanvas extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
+        // Show text input dialog when text input position is set
+        if (provider.textInputPosition != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showDialog(
+              context: context,
+              builder: (context) => const TextInputDialog(),
+            );
+          });
+        }
+
         return Stack(
           children: [
             GestureDetector(
@@ -20,6 +33,7 @@ class DrawingCanvas extends StatelessWidget {
                 provider.startDrawing(
                   details.localPosition,
                   details.pressure,
+                  isPen: details.kind == PointerDeviceKind.stylus,
                 );
               },
               onPanUpdate: (details) {
@@ -43,6 +57,7 @@ class DrawingCanvas extends StatelessWidget {
                     isEraser: provider.isEraser,
                     isDarkMode: provider.isDarkMode,
                     shapePreview: provider.isShapeMode ? provider.getShapePreview() : [],
+                    showGridLines: provider.settings.showGridLines,
                   ),
                   child: Container(
                     width: double.infinity,
@@ -54,6 +69,47 @@ class DrawingCanvas extends StatelessWidget {
                 ),
               ),
             ),
+            // Text objects overlay
+            ...provider.textObjects.map((textObj) => Positioned(
+              left: textObj.position.dx,
+              top: textObj.position.dy,
+              child: GestureDetector(
+                onTap: () => provider.selectTextObject(textObj),
+                onPanUpdate: (details) {
+                  provider.moveTextObject(
+                    textObj.id,
+                    textObj.position + details.delta,
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: provider.selectedTextObject?.id == textObj.id
+                        ? const Color(0xFF667EEA).withOpacity(0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    border: provider.selectedTextObject?.id == textObj.id
+                        ? Border.all(color: const Color(0xFF667EEA), width: 2)
+                        : null,
+                  ),
+                  child: textObj.type == TextType.latex
+                      ? Math.tex(
+                          textObj.text,
+                          textStyle: TextStyle(
+                            fontSize: textObj.fontSize,
+                            color: textObj.color,
+                          ),
+                        )
+                      : Text(
+                          textObj.text,
+                          style: TextStyle(
+                            fontSize: textObj.fontSize,
+                            color: textObj.color,
+                          ),
+                        ),
+                ),
+              ),
+            )),
             // Selection overlay
             if (provider.selectionRect != null)
               Positioned.fill(
@@ -79,6 +135,7 @@ class DrawingPainter extends CustomPainter {
   final bool isEraser;
   final bool isDarkMode;
   final List<DrawingPoint> shapePreview;
+  final bool showGridLines;
 
   DrawingPainter({
     required this.strokes,
@@ -89,10 +146,16 @@ class DrawingPainter extends CustomPainter {
     required this.isEraser,
     required this.isDarkMode,
     this.shapePreview = const [],
+    this.showGridLines = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Draw grid lines if enabled
+    if (showGridLines) {
+      _drawGridLines(canvas, size);
+    }
+
     // Draw completed strokes
     for (var stroke in strokes) {
       _drawStroke(canvas, stroke);
@@ -151,11 +214,39 @@ class DrawingPainter extends CustomPainter {
     }
   }
 
+  void _drawGridLines(Canvas canvas, Size size) {
+    final gridPaint = Paint()
+      ..color = (isDarkMode ? Colors.white : Colors.black).withOpacity(0.1)
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+
+    const gridSpacing = 40.0;
+
+    // Draw vertical lines
+    for (double x = 0; x < size.width; x += gridSpacing) {
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x, size.height),
+        gridPaint,
+      );
+    }
+
+    // Draw horizontal lines
+    for (double y = 0; y < size.height; y += gridSpacing) {
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        gridPaint,
+      );
+    }
+  }
+
   @override
   bool shouldRepaint(DrawingPainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.currentStroke != currentStroke ||
         oldDelegate.shapePreview != shapePreview ||
+        oldDelegate.showGridLines != showGridLines ||
         oldDelegate.isDarkMode != isDarkMode;
   }
 }

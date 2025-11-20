@@ -2,22 +2,28 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import '../models/drawing_stroke.dart';
+import '../models/text_object.dart';
+import '../models/app_settings.dart';
 import 'dart:typed_data';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import '../services/ocr_service.dart';
 import '../services/shape_recognition_service.dart';
 import '../services/shape_drawing_service.dart';
 
-enum DrawingMode { pen, eraser, select, shape }
+enum DrawingMode { pen, eraser, select, shape, text }
 
 class DrawingProvider extends ChangeNotifier {
   final List<DrawingStroke> _strokes = [];
+  final List<TextObject> _textObjects = [];
   final List<List<DrawingStroke>> _history = [];
   int _historyIndex = -1;
   final int _maxHistory = 50;
 
   DrawingPoint? _currentPoint;
   final List<DrawingPoint> _currentStroke = [];
+
+  // App settings
+  AppSettings _settings = AppSettings();
 
   // Drawing settings
   Color _currentColor = Colors.black;
@@ -26,6 +32,10 @@ class DrawingProvider extends ChangeNotifier {
   DrawingMode _mode = DrawingMode.pen;
   bool _isDarkMode = false;
   bool _autoShapeEnabled = false;
+
+  // Text input
+  Offset? _textInputPosition;
+  TextObject? _selectedTextObject;
 
   // Selection
   Rect? _selectionRect;
@@ -49,6 +59,8 @@ class DrawingProvider extends ChangeNotifier {
 
   // Getters
   List<DrawingStroke> get strokes => _strokes;
+  List<TextObject> get textObjects => _textObjects;
+  AppSettings get settings => _settings;
   Color get currentColor => _currentColor;
   double get lineWidth => _lineWidth;
   double get opacity => _opacity;
@@ -68,6 +80,10 @@ class DrawingProvider extends ChangeNotifier {
   double get triangleAngle2 => _triangleAngle2;
   double get triangleAngle3 => _triangleAngle3;
   bool get isShapeMode => _mode == DrawingMode.shape;
+  bool get isTextMode => _mode == DrawingMode.text;
+  Offset? get textInputPosition => _textInputPosition;
+  TextObject? get selectedTextObject => _selectedTextObject;
+  bool get palmRejection => _settings.palmRejection;
 
   // Setters
   void setColor(Color color) {
@@ -125,7 +141,12 @@ class DrawingProvider extends ChangeNotifier {
   }
 
   // Drawing methods
-  void startDrawing(Offset offset, double pressure) {
+  void startDrawing(Offset offset, double pressure, {bool isPen = false}) {
+    // Palm rejection: ignore if palm rejection is enabled and input is not from pen
+    if (_settings.palmRejection && !isPen && _mode == DrawingMode.pen) {
+      return;
+    }
+
     if (_mode == DrawingMode.select) {
       _selectionStart = offset;
       _isSelecting = true;
@@ -137,6 +158,11 @@ class DrawingProvider extends ChangeNotifier {
     if (_mode == DrawingMode.shape) {
       _shapeStartPoint = offset;
       notifyListeners();
+      return;
+    }
+
+    if (_mode == DrawingMode.text) {
+      startTextInput(offset);
       return;
     }
 
@@ -519,6 +545,79 @@ class DrawingProvider extends ChangeNotifier {
       notifyListeners();
       return null;
     }
+  }
+
+  // Text input methods
+  void startTextInput(Offset position) {
+    _textInputPosition = position;
+    notifyListeners();
+  }
+
+  void addTextObject(String text, {TextType type = TextType.normal}) {
+    if (_textInputPosition == null || text.trim().isEmpty) return;
+
+    final textObj = TextObject(
+      text: text,
+      position: _textInputPosition!,
+      color: _currentColor,
+      type: type,
+    );
+
+    _textObjects.add(textObj);
+    _textInputPosition = null;
+    notifyListeners();
+  }
+
+  void selectTextObject(TextObject? textObj) {
+    _selectedTextObject = textObj;
+    notifyListeners();
+  }
+
+  void updateTextObject(String id, String newText) {
+    final index = _textObjects.indexWhere((obj) => obj.id == id);
+    if (index != -1) {
+      _textObjects[index] = _textObjects[index].copyWith(text: newText);
+      notifyListeners();
+    }
+  }
+
+  void deleteTextObject(String id) {
+    _textObjects.removeWhere((obj) => obj.id == id);
+    if (_selectedTextObject?.id == id) {
+      _selectedTextObject = null;
+    }
+    notifyListeners();
+  }
+
+  void moveTextObject(String id, Offset newPosition) {
+    final index = _textObjects.indexWhere((obj) => obj.id == id);
+    if (index != -1) {
+      _textObjects[index] = _textObjects[index].copyWith(position: newPosition);
+      notifyListeners();
+    }
+  }
+
+  void cancelTextInput() {
+    _textInputPosition = null;
+    notifyListeners();
+  }
+
+  // Settings methods
+  void updateSettings(AppSettings newSettings) {
+    _settings = newSettings;
+    _isDarkMode = newSettings.isDarkMode;
+    _autoShapeEnabled = newSettings.autoShapeEnabled;
+    notifyListeners();
+  }
+
+  void togglePalmRejection() {
+    _settings = _settings.copyWith(palmRejection: !_settings.palmRejection);
+    notifyListeners();
+  }
+
+  void toggleGridLines() {
+    _settings = _settings.copyWith(showGridLines: !_settings.showGridLines);
+    notifyListeners();
   }
 
   @override

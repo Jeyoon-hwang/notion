@@ -73,6 +73,14 @@ class FloatingToolbar extends StatelessWidget {
                     isDarkMode: provider.isDarkMode,
                     label: '도형',
                   ),
+                  const SizedBox(width: 12),
+                  _ToolButton(
+                    icon: '⌨',
+                    isActive: provider.mode == DrawingMode.text,
+                    onTap: () => provider.setMode(DrawingMode.text),
+                    isDarkMode: provider.isDarkMode,
+                    label: '텍스트',
+                  ),
 
                   // Auto-shape toggle (only show when pen mode)
                   if (provider.mode == DrawingMode.pen) ...[
