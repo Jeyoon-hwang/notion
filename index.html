@@ -1,4 +1,532 @@
-<a class="weatherwidget-io" href="https://forecast7.com/en/40d71n74d01/new-york/" data-label_1="NEW YORK" data-label_2="WEATHER" data-theme="original" >NEW YORK WEATHER</a>
-<script>
-!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
-</script>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>디지털 필기앱 - Digital Note</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            overflow: hidden;
+            background-color: #f5f5f5;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode {
+            background-color: #1e1e1e;
+        }
+
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        body.dark-mode .toolbar {
+            background: #2d2d2d;
+            border-bottom-color: #404040;
+        }
+
+        .tool-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding-right: 15px;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        body.dark-mode .tool-group {
+            border-right-color: #404040;
+        }
+
+        .tool-group:last-child {
+            border-right: none;
+        }
+
+        .tool-btn {
+            padding: 8px 16px;
+            border: 1px solid #d0d0d0;
+            background: #fafafa;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            color: #333;
+        }
+
+        body.dark-mode .tool-btn {
+            background: #3a3a3a;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        .tool-btn:hover {
+            background: #e8e8e8;
+            border-color: #999;
+        }
+
+        body.dark-mode .tool-btn:hover {
+            background: #4a4a4a;
+            border-color: #666;
+        }
+
+        .tool-btn.active {
+            background: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+
+        body.dark-mode .tool-btn.active {
+            background: #0a84ff;
+            border-color: #0a84ff;
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #d0d0d0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .color-picker:hover {
+            border-color: #007aff;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .slider-group label {
+            font-size: 13px;
+            color: #666;
+            min-width: 60px;
+        }
+
+        body.dark-mode .slider-group label {
+            color: #aaa;
+        }
+
+        .slider {
+            width: 100px;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .value-display {
+            font-size: 13px;
+            color: #333;
+            min-width: 30px;
+            font-weight: 500;
+        }
+
+        body.dark-mode .value-display {
+            color: #e0e0e0;
+        }
+
+        #canvas {
+            position: fixed;
+            top: 65px;
+            left: 0;
+            cursor: crosshair;
+            background: white;
+            transition: background-color 0.3s;
+        }
+
+        body.dark-mode #canvas {
+            background: #252525;
+        }
+
+        .app-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-right: auto;
+        }
+
+        body.dark-mode .app-title {
+            color: #e0e0e0;
+        }
+
+        .history-btns {
+            display: flex;
+            gap: 8px;
+        }
+
+        .color-preset {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .color-preset:hover {
+            border-color: #007aff;
+        }
+
+        .color-presets {
+            display: flex;
+            gap: 6px;
+        }
+
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-wrap: wrap;
+                padding: 8px 10px;
+            }
+
+            .tool-group {
+                padding-right: 10px;
+            }
+
+            .app-title {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+
+            .slider-group {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="app-title">📝 Digital Note</div>
+
+        <div class="tool-group">
+            <button class="tool-btn active" id="penBtn" title="펜 (P)">✏️ 펜</button>
+            <button class="tool-btn" id="eraserBtn" title="지우개 (E)">🧹 지우개</button>
+        </div>
+
+        <div class="tool-group color-presets">
+            <div class="color-preset" style="background: #000000" data-color="#000000"></div>
+            <div class="color-preset" style="background: #FF0000" data-color="#FF0000"></div>
+            <div class="color-preset" style="background: #0000FF" data-color="#0000FF"></div>
+            <div class="color-preset" style="background: #00CC00" data-color="#00CC00"></div>
+            <div class="color-preset" style="background: #FFD700" data-color="#FFD700"></div>
+            <input type="color" class="color-picker" id="colorPicker" value="#000000" title="색상 선택">
+        </div>
+
+        <div class="tool-group slider-group">
+            <label for="lineWidth">두께:</label>
+            <input type="range" id="lineWidth" class="slider" min="1" max="20" value="2">
+            <span class="value-display" id="lineWidthValue">2</span>
+        </div>
+
+        <div class="tool-group slider-group">
+            <label for="opacity">투명도:</label>
+            <input type="range" id="opacity" class="slider" min="0.1" max="1" step="0.1" value="1">
+            <span class="value-display" id="opacityValue">1.0</span>
+        </div>
+
+        <div class="tool-group history-btns">
+            <button class="tool-btn" id="undoBtn" title="실행 취소 (Ctrl+Z)">↶ Undo</button>
+            <button class="tool-btn" id="redoBtn" title="다시 실행 (Ctrl+Y)">↷ Redo</button>
+        </div>
+
+        <div class="tool-group">
+            <button class="tool-btn" id="clearBtn" title="전체 지우기">🗑️ Clear</button>
+            <button class="tool-btn" id="downloadBtn" title="이미지로 저장">💾 저장</button>
+            <button class="tool-btn" id="darkModeBtn" title="다크 모드 (D)">🌙 다크</button>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Canvas 초기화
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        // 캔버스 크기 설정
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - 65;
+            redrawCanvas();
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 상태 변수
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let currentColor = '#000000';
+        let lineWidth = 2;
+        let opacity = 1.0;
+
+        // Undo/Redo 기능을 위한 히스토리
+        let history = [];
+        let historyStep = -1;
+        const maxHistory = 50;
+
+        // 현재 획 데이터 (벡터 기반)
+        let currentStroke = [];
+        let strokes = [];
+
+        // 캔버스에 그리기
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            currentStroke.push({ x, y });
+
+            ctx.globalAlpha = opacity;
+            ctx.strokeStyle = currentTool === 'eraser' ? (document.body.classList.contains('dark-mode') ? '#252525' : '#ffffff') : currentColor;
+            ctx.lineWidth = currentTool === 'eraser' ? lineWidth * 2 : lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (currentStroke.length === 1) {
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            } else {
+                const prevPoint = currentStroke[currentStroke.length - 2];
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            }
+        }
+
+        // 그리기 시작
+        function startDrawing(e) {
+            isDrawing = true;
+            currentStroke = [];
+            draw(e);
+        }
+
+        // 그리기 종료
+        function stopDrawing() {
+            if (isDrawing && currentStroke.length > 0) {
+                // 획 저장 (벡터 데이터)
+                strokes.push({
+                    points: [...currentStroke],
+                    color: currentColor,
+                    width: lineWidth,
+                    opacity: opacity,
+                    tool: currentTool
+                });
+                saveState();
+            }
+            isDrawing = false;
+            currentStroke = [];
+            ctx.beginPath();
+        }
+
+        // 상태 저장 (Undo/Redo용)
+        function saveState() {
+            historyStep++;
+            if (historyStep < history.length) {
+                history.length = historyStep;
+            }
+            history.push(canvas.toDataURL());
+            if (history.length > maxHistory) {
+                history.shift();
+                historyStep--;
+            }
+        }
+
+        // 캔버스 다시 그리기
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            strokes.forEach(stroke => {
+                ctx.globalAlpha = stroke.opacity;
+                ctx.strokeStyle = stroke.tool === 'eraser' ? (document.body.classList.contains('dark-mode') ? '#252525' : '#ffffff') : stroke.color;
+                ctx.lineWidth = stroke.tool === 'eraser' ? stroke.width * 2 : stroke.width;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                stroke.points.forEach((point, index) => {
+                    if (index === 0) {
+                        ctx.moveTo(point.x, point.y);
+                    } else {
+                        ctx.lineTo(point.x, point.y);
+                    }
+                });
+                ctx.stroke();
+            });
+        }
+
+        // Undo
+        function undo() {
+            if (historyStep > 0) {
+                historyStep--;
+                const img = new Image();
+                img.src = history[historyStep];
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                if (strokes.length > 0) {
+                    strokes.pop();
+                }
+            }
+        }
+
+        // Redo
+        function redo() {
+            if (historyStep < history.length - 1) {
+                historyStep++;
+                const img = new Image();
+                img.src = history[historyStep];
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+            }
+        }
+
+        // Clear
+        function clearCanvas() {
+            if (confirm('모든 내용을 지우시겠습니까?')) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                strokes = [];
+                saveState();
+            }
+        }
+
+        // 이미지 저장
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = `note_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // 다크 모드 토글
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            document.getElementById('darkModeBtn').innerHTML = isDark ? '☀️ 라이트' : '🌙 다크';
+            redrawCanvas();
+        }
+
+        // 이벤트 리스너
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // 터치 이벤트 (모바일 지원)
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousedown', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent('mousemove', {
+                clientX: touch.clientX,
+                clientY: touch.clientY
+            });
+            canvas.dispatchEvent(mouseEvent);
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const mouseEvent = new MouseEvent('mouseup', {});
+            canvas.dispatchEvent(mouseEvent);
+        });
+
+        // 도구 버튼
+        document.getElementById('penBtn').addEventListener('click', () => {
+            currentTool = 'pen';
+            document.getElementById('penBtn').classList.add('active');
+            document.getElementById('eraserBtn').classList.remove('active');
+        });
+
+        document.getElementById('eraserBtn').addEventListener('click', () => {
+            currentTool = 'eraser';
+            document.getElementById('eraserBtn').classList.add('active');
+            document.getElementById('penBtn').classList.remove('active');
+        });
+
+        // 색상 선택
+        document.getElementById('colorPicker').addEventListener('input', (e) => {
+            currentColor = e.target.value;
+        });
+
+        // 프리셋 색상
+        document.querySelectorAll('.color-preset').forEach(preset => {
+            preset.addEventListener('click', (e) => {
+                currentColor = e.target.dataset.color;
+                document.getElementById('colorPicker').value = currentColor;
+            });
+        });
+
+        // 두께 조절
+        document.getElementById('lineWidth').addEventListener('input', (e) => {
+            lineWidth = parseInt(e.target.value);
+            document.getElementById('lineWidthValue').textContent = lineWidth;
+        });
+
+        // 투명도 조절
+        document.getElementById('opacity').addEventListener('input', (e) => {
+            opacity = parseFloat(e.target.value);
+            document.getElementById('opacityValue').textContent = opacity.toFixed(1);
+        });
+
+        // 기타 버튼
+        document.getElementById('undoBtn').addEventListener('click', undo);
+        document.getElementById('redoBtn').addEventListener('click', redo);
+        document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+        document.getElementById('downloadBtn').addEventListener('click', downloadImage);
+        document.getElementById('darkModeBtn').addEventListener('click', toggleDarkMode);
+
+        // 키보드 단축키
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'z') {
+                    e.preventDefault();
+                    undo();
+                } else if (e.key === 'y') {
+                    e.preventDefault();
+                    redo();
+                }
+            } else if (e.key === 'p' || e.key === 'P') {
+                document.getElementById('penBtn').click();
+            } else if (e.key === 'e' || e.key === 'E') {
+                document.getElementById('eraserBtn').click();
+            } else if (e.key === 'd' || e.key === 'D') {
+                toggleDarkMode();
+            }
+        });
+
+        // 초기 상태 저장
+        saveState();
+    </script>
+</body>
+</html>
