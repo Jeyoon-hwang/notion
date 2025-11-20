@@ -1,4 +1,240 @@
-<a class="weatherwidget-io" href="https://forecast7.com/en/40d71n74d01/new-york/" data-label_1="NEW YORK" data-label_2="WEATHER" data-theme="original" >NEW YORK WEATHER</a>
-<script>
-!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src='https://weatherwidget.io/js/widget.min.js';fjs.parentNode.insertBefore(js,fjs);}}(document,'script','weatherwidget-io-js');
-</script>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyNotes - 스마트 노트 앱</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 로딩 화면 -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>MyNotes 로딩 중...</p>
+    </div>
+
+    <!-- 비밀번호 입력 모달 -->
+    <div id="password-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>🔒 노트 잠금</h2>
+            <p id="password-message">이 노트는 잠겨있습니다. 비밀번호를 입력하세요.</p>
+            <input type="password" id="password-input" placeholder="비밀번호">
+            <div class="modal-buttons">
+                <button id="password-submit" class="btn btn-primary">확인</button>
+                <button id="password-cancel" class="btn btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비밀번호 설정 모달 -->
+    <div id="set-password-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>🔐 비밀번호 설정</h2>
+            <input type="password" id="new-password" placeholder="새 비밀번호">
+            <input type="password" id="confirm-password" placeholder="비밀번호 확인">
+            <div class="modal-buttons">
+                <button id="set-password-submit" class="btn btn-primary">설정</button>
+                <button id="set-password-cancel" class="btn btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="container">
+        <!-- 사이드바 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1>📝 MyNotes</h1>
+                <button id="toggle-sidebar" class="icon-btn" title="사이드바 접기">☰</button>
+            </div>
+
+            <!-- 검색 바 -->
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="🔍 노트 검색..." class="search-input">
+            </div>
+
+            <!-- 새 노트/폴더 버튼 -->
+            <div class="action-buttons">
+                <button id="new-note-btn" class="btn btn-primary">✏️ 새 노트</button>
+                <button id="new-folder-btn" class="btn btn-secondary">📁 새 폴더</button>
+            </div>
+
+            <!-- 필터 및 정렬 -->
+            <div class="filter-section">
+                <select id="sort-select" class="filter-select">
+                    <option value="modified">최근 수정순</option>
+                    <option value="created">생성일순</option>
+                    <option value="title">제목순</option>
+                </select>
+            </div>
+
+            <!-- 폴더 및 노트 목록 -->
+            <div class="notes-list" id="notes-list">
+                <!-- 동적으로 생성됨 -->
+            </div>
+
+            <!-- 하단 설정 -->
+            <div class="sidebar-footer">
+                <button id="dark-mode-toggle" class="icon-btn" title="다크 모드">🌙</button>
+                <button id="export-btn" class="icon-btn" title="내보내기">💾</button>
+                <button id="settings-btn" class="icon-btn" title="설정">⚙️</button>
+            </div>
+        </aside>
+
+        <!-- 메인 에디터 영역 -->
+        <main class="main-content">
+            <!-- 환영 화면 -->
+            <div id="welcome-screen" class="welcome-screen">
+                <h1>👋 환영합니다!</h1>
+                <p>새 노트를 만들거나 기존 노트를 선택하세요.</p>
+                <button id="welcome-new-note" class="btn btn-primary btn-large">✏️ 첫 노트 만들기</button>
+            </div>
+
+            <!-- 노트 에디터 -->
+            <div id="note-editor" class="note-editor hidden">
+                <!-- 에디터 헤더 -->
+                <div class="editor-header">
+                    <input type="text" id="note-title" class="note-title-input" placeholder="제목 없음">
+                    <div class="editor-actions">
+                        <button id="lock-note-btn" class="icon-btn" title="노트 잠금">🔓</button>
+                        <button id="star-note-btn" class="icon-btn" title="즐겨찾기">☆</button>
+                        <button id="share-note-btn" class="icon-btn" title="공유">📤</button>
+                        <button id="delete-note-btn" class="icon-btn" title="삭제">🗑️</button>
+                    </div>
+                </div>
+
+                <!-- 메타 정보 -->
+                <div class="editor-meta">
+                    <span id="note-date">생성: -</span>
+                    <span id="note-modified">수정: -</span>
+                    <span id="note-folder">📁 폴더: 없음</span>
+                </div>
+
+                <!-- 서식 도구 -->
+                <div class="toolbar">
+                    <button class="toolbar-btn" data-command="bold" title="굵게 (Ctrl+B)"><strong>B</strong></button>
+                    <button class="toolbar-btn" data-command="italic" title="기울임 (Ctrl+I)"><em>I</em></button>
+                    <button class="toolbar-btn" data-command="underline" title="밑줄 (Ctrl+U)"><u>U</u></button>
+                    <button class="toolbar-btn" data-command="strikeThrough" title="취소선"><s>S</s></button>
+                    <span class="toolbar-separator">|</span>
+                    <button class="toolbar-btn" data-command="insertUnorderedList" title="글머리 기호">• 목록</button>
+                    <button class="toolbar-btn" data-command="insertOrderedList" title="번호 매기기">1. 목록</button>
+                    <button class="toolbar-btn" id="checklist-btn" title="체크리스트">☑ 체크</button>
+                    <span class="toolbar-separator">|</span>
+                    <select id="heading-select" class="toolbar-select" title="제목">
+                        <option value="p">본문</option>
+                        <option value="h1">제목 1</option>
+                        <option value="h2">제목 2</option>
+                        <option value="h3">제목 3</option>
+                    </select>
+                    <span class="toolbar-separator">|</span>
+                    <input type="color" id="text-color" class="toolbar-color" title="글자 색">
+                    <input type="color" id="bg-color" class="toolbar-color" title="배경 색" value="#ffffff">
+                    <span class="toolbar-separator">|</span>
+                    <button class="toolbar-btn" id="drawing-mode-btn" title="그리기 모드">✏️ 그리기</button>
+                </div>
+
+                <!-- 그리기 도구 (그리기 모드에서만 표시) -->
+                <div class="drawing-toolbar hidden" id="drawing-toolbar">
+                    <button class="toolbar-btn" id="draw-pen" title="펜">🖊️ 펜</button>
+                    <button class="toolbar-btn" id="draw-eraser" title="지우개">🧹 지우개</button>
+                    <button class="toolbar-btn" id="draw-highlighter" title="형광펜">🖍️ 형광펜</button>
+                    <span class="toolbar-separator">|</span>
+                    <input type="color" id="draw-color" class="toolbar-color" value="#000000" title="그리기 색상">
+                    <select id="draw-size" class="toolbar-select" title="굵기">
+                        <option value="2">가늘게</option>
+                        <option value="5" selected>보통</option>
+                        <option value="10">굵게</option>
+                        <option value="20">아주 굵게</option>
+                    </select>
+                    <span class="toolbar-separator">|</span>
+                    <button class="toolbar-btn" id="clear-drawing" title="전체 지우기">🗑️ 전체 지우기</button>
+                    <button class="toolbar-btn" id="save-drawing" title="그리기 완료">✅ 완료</button>
+                </div>
+
+                <!-- 태그 입력 -->
+                <div class="tags-container">
+                    <div id="tags-display" class="tags-display"></div>
+                    <input type="text" id="tag-input" class="tag-input" placeholder="태그 추가 (#엔터)">
+                </div>
+
+                <!-- 에디터 본문 -->
+                <div class="editor-container">
+                    <div id="editor-content" class="editor-content" contenteditable="true" spellcheck="false">
+                        <p>여기에 내용을 입력하세요...</p>
+                    </div>
+                    <!-- 그리기 레이어 -->
+                    <canvas id="drawing-canvas" class="drawing-canvas hidden"></canvas>
+                </div>
+
+                <!-- 하단 상태 바 -->
+                <div class="editor-footer">
+                    <span id="word-count">0 단어</span>
+                    <span id="char-count">0 글자</span>
+                    <span id="save-status">저장됨</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 설정 모달 -->
+    <div id="settings-modal" class="modal hidden">
+        <div class="modal-content modal-large">
+            <h2>⚙️ 설정</h2>
+            <div class="settings-section">
+                <h3>일반</h3>
+                <label>
+                    <input type="checkbox" id="auto-save" checked>
+                    자동 저장 (3초)
+                </label>
+                <label>
+                    <input type="checkbox" id="spell-check">
+                    맞춤법 검사
+                </label>
+            </div>
+            <div class="settings-section">
+                <h3>테마</h3>
+                <label>
+                    <input type="radio" name="theme" value="light" checked>
+                    라이트 모드
+                </label>
+                <label>
+                    <input type="radio" name="theme" value="dark">
+                    다크 모드
+                </label>
+                <label>
+                    <input type="radio" name="theme" value="auto">
+                    시스템 설정 따름
+                </label>
+            </div>
+            <div class="settings-section">
+                <h3>데이터</h3>
+                <button id="clear-data-btn" class="btn btn-danger">모든 데이터 삭제</button>
+                <button id="import-data-btn" class="btn btn-secondary">데이터 가져오기</button>
+                <input type="file" id="import-file-input" accept=".json" style="display:none;">
+            </div>
+            <div class="modal-buttons">
+                <button id="settings-close" class="btn btn-primary">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 내보내기 모달 -->
+    <div id="export-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>💾 내보내기</h2>
+            <p>노트를 내보낼 형식을 선택하세요:</p>
+            <div class="export-options">
+                <button id="export-json" class="btn btn-primary">📋 JSON (전체 백업)</button>
+                <button id="export-txt" class="btn btn-secondary">📄 TXT (현재 노트)</button>
+                <button id="export-html" class="btn btn-secondary">🌐 HTML (현재 노트)</button>
+            </div>
+            <div class="modal-buttons">
+                <button id="export-close" class="btn btn-secondary">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
