@@ -4,6 +4,9 @@ import 'package:flutter/rendering.dart';
 import '../models/drawing_stroke.dart';
 import 'dart:typed_data';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
+import '../services/ocr_service.dart';
+
+enum DrawingMode { pen, eraser, select }
 
 class DrawingProvider extends ChangeNotifier {
   final List<DrawingStroke> _strokes = [];
@@ -18,18 +21,31 @@ class DrawingProvider extends ChangeNotifier {
   Color _currentColor = Colors.black;
   double _lineWidth = 3.0;
   double _opacity = 1.0;
-  bool _isEraser = false;
+  DrawingMode _mode = DrawingMode.pen;
   bool _isDarkMode = false;
+
+  // Selection
+  Rect? _selectionRect;
+  Offset? _selectionStart;
+  bool _isSelecting = false;
+
+  // OCR
+  final OCRService _ocrService = OCRService();
+  bool _isProcessingOCR = false;
 
   // Getters
   List<DrawingStroke> get strokes => _strokes;
   Color get currentColor => _currentColor;
   double get lineWidth => _lineWidth;
   double get opacity => _opacity;
-  bool get isEraser => _isEraser;
+  DrawingMode get mode => _mode;
+  bool get isEraser => _mode == DrawingMode.eraser;
+  bool get isSelectMode => _mode == DrawingMode.select;
   bool get isDarkMode => _isDarkMode;
   bool get canUndo => _historyIndex > 0;
   bool get canRedo => _historyIndex < _history.length - 1;
+  Rect? get selectionRect => _selectionRect;
+  bool get isProcessingOCR => _isProcessingOCR;
 
   // Setters
   void setColor(Color color) {
@@ -47,8 +63,9 @@ class DrawingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setTool(bool isEraser) {
-    _isEraser = isEraser;
+  void setMode(DrawingMode mode) {
+    _mode = mode;
+    _selectionRect = null;
     notifyListeners();
   }
 
@@ -59,24 +76,44 @@ class DrawingProvider extends ChangeNotifier {
 
   // Drawing methods
   void startDrawing(Offset offset, double pressure) {
+    if (_mode == DrawingMode.select) {
+      _selectionStart = offset;
+      _isSelecting = true;
+      _selectionRect = null;
+      notifyListeners();
+      return;
+    }
+
     _currentStroke.clear();
     _currentStroke.add(DrawingPoint(offset: offset, pressure: pressure));
     notifyListeners();
   }
 
   void updateDrawing(Offset offset, double pressure) {
+    if (_mode == DrawingMode.select && _isSelecting && _selectionStart != null) {
+      _selectionRect = Rect.fromPoints(_selectionStart!, offset);
+      notifyListeners();
+      return;
+    }
+
     _currentStroke.add(DrawingPoint(offset: offset, pressure: pressure));
     notifyListeners();
   }
 
   void endDrawing() {
+    if (_mode == DrawingMode.select) {
+      _isSelecting = false;
+      notifyListeners();
+      return;
+    }
+
     if (_currentStroke.isNotEmpty) {
       final stroke = DrawingStroke(
         points: List.from(_currentStroke),
         color: _currentColor,
         width: _lineWidth,
         opacity: _opacity,
-        isEraser: _isEraser,
+        isEraser: _mode == DrawingMode.eraser,
       );
       _strokes.add(stroke);
       _saveState();
@@ -123,6 +160,12 @@ class DrawingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSelection() {
+    _selectionRect = null;
+    _selectionStart = null;
+    notifyListeners();
+  }
+
   Future<void> saveImage(GlobalKey repaintBoundaryKey) async {
     try {
       RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!
@@ -142,5 +185,56 @@ class DrawingProvider extends ChangeNotifier {
     } catch (e) {
       print('Error saving image: $e');
     }
+  }
+
+  Future<Map<String, dynamic>?> recognizeSelection(GlobalKey repaintBoundaryKey) async {
+    if (_selectionRect == null) return null;
+
+    _isProcessingOCR = true;
+    notifyListeners();
+
+    try {
+      RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!
+          .findRenderObject() as RenderRepaintBoundary;
+      
+      // Get full canvas image
+      ui.Image fullImage = await boundary.toImage(pixelRatio: 2.0);
+      
+      // Crop to selection
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      
+      canvas.drawImageRect(
+        fullImage,
+        _selectionRect!,
+        Rect.fromLTWH(0, 0, _selectionRect!.width, _selectionRect!.height),
+        Paint(),
+      );
+      
+      final picture = recorder.endRecording();
+      final croppedImage = await picture.toImage(
+        _selectionRect!.width.toInt(),
+        _selectionRect!.height.toInt(),
+      );
+
+      // Process with OCR
+      final result = await _ocrService.processHandwriting(croppedImage);
+      
+      _isProcessingOCR = false;
+      notifyListeners();
+      
+      return result;
+    } catch (e) {
+      print('Error recognizing text: $e');
+      _isProcessingOCR = false;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ocrService.dispose();
+    super.dispose();
   }
 }

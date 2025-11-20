@@ -13,43 +13,56 @@ class DrawingCanvas extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
-        return GestureDetector(
-          onPanStart: (details) {
-            provider.startDrawing(
-              details.localPosition,
-              details.pressure,
-            );
-          },
-          onPanUpdate: (details) {
-            provider.updateDrawing(
-              details.localPosition,
-              details.pressure,
-            );
-          },
-          onPanEnd: (details) {
-            provider.endDrawing();
-          },
-          child: RepaintBoundary(
-            key: repaintBoundaryKey,
-            child: CustomPaint(
-              painter: DrawingPainter(
-                strokes: provider.strokes,
-                currentStroke: provider.currentStroke,
-                currentColor: provider.currentColor,
-                lineWidth: provider.lineWidth,
-                opacity: provider.opacity,
-                isEraser: provider.isEraser,
-                isDarkMode: provider.isDarkMode,
-              ),
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                color: provider.isDarkMode
-                    ? const Color(0xFF1E1E1E)
-                    : Colors.white,
+        return Stack(
+          children: [
+            GestureDetector(
+              onPanStart: (details) {
+                provider.startDrawing(
+                  details.localPosition,
+                  details.pressure,
+                );
+              },
+              onPanUpdate: (details) {
+                provider.updateDrawing(
+                  details.localPosition,
+                  details.pressure,
+                );
+              },
+              onPanEnd: (details) {
+                provider.endDrawing();
+              },
+              child: RepaintBoundary(
+                key: repaintBoundaryKey,
+                child: CustomPaint(
+                  painter: DrawingPainter(
+                    strokes: provider.strokes,
+                    currentStroke: provider.currentStroke,
+                    currentColor: provider.currentColor,
+                    lineWidth: provider.lineWidth,
+                    opacity: provider.opacity,
+                    isEraser: provider.isEraser,
+                    isDarkMode: provider.isDarkMode,
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    height: double.infinity,
+                    color: provider.isDarkMode
+                        ? const Color(0xFF1E1E1E)
+                        : Colors.white,
+                  ),
+                ),
               ),
             ),
-          ),
+            // Selection overlay
+            if (provider.selectionRect != null)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: SelectionPainter(
+                    selectionRect: provider.selectionRect!,
+                  ),
+                ),
+              ),
+          ],
         );
       },
     );
@@ -128,5 +141,92 @@ class DrawingPainter extends CustomPainter {
     return oldDelegate.strokes != strokes ||
         oldDelegate.currentStroke != currentStroke ||
         oldDelegate.isDarkMode != isDarkMode;
+  }
+}
+
+class SelectionPainter extends CustomPainter {
+  final Rect selectionRect;
+
+  SelectionPainter({required this.selectionRect});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Draw selection background
+    final bgPaint = Paint()
+      ..color = const Color(0xFF667EEA).withOpacity(0.1)
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(selectionRect, bgPaint);
+
+    // Draw selection border
+    final borderPaint = Paint()
+      ..color = const Color(0xFF667EEA)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    
+    // Dashed border
+    final path = Path()
+      ..addRect(selectionRect);
+    
+    canvas.drawPath(_createDashedPath(path, 8, 4), borderPaint);
+
+    // Draw corner handles
+    final handlePaint = Paint()
+      ..color = const Color(0xFF667EEA)
+      ..style = PaintingStyle.fill;
+    
+    final handleSize = 8.0;
+    final corners = [
+      selectionRect.topLeft,
+      selectionRect.topRight,
+      selectionRect.bottomLeft,
+      selectionRect.bottomRight,
+    ];
+
+    for (var corner in corners) {
+      canvas.drawCircle(corner, handleSize, handlePaint);
+      canvas.drawCircle(
+        corner,
+        handleSize,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    }
+  }
+
+  Path _createDashedPath(Path source, double dashLength, double dashSpace) {
+    final Path dest = Path();
+    for (PathMetric metric in source.computeMetrics()) {
+      double distance = 0.0;
+      bool draw = true;
+      while (distance < metric.length) {
+        final double length = draw ? dashLength : dashSpace;
+        if (distance + length > metric.length) {
+          if (draw) {
+            dest.addPath(
+              metric.extractPath(distance, metric.length),
+              Offset.zero,
+            );
+          }
+          break;
+        }
+        if (draw) {
+          dest.addPath(
+            metric.extractPath(distance, distance + length),
+            Offset.zero,
+          );
+        }
+        distance += length;
+        draw = !draw;
+      }
+    }
+    return dest;
+  }
+
+  @override
+  bool shouldRepaint(SelectionPainter oldDelegate) {
+    return oldDelegate.selectionRect != selectionRect;
   }
 }

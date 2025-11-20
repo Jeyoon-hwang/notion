@@ -24,7 +24,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
       if (mounted) {
         setState(() => _showGestureHint = true);
       }
-      Future.delayed(const Duration(seconds: 3), () {
+      Future.delayed(const Duration(seconds: 4), () {
         if (mounted) {
           setState(() => _showGestureHint = false);
         }
@@ -52,9 +52,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
                 children: [
                   DrawingCanvas(repaintBoundaryKey: _repaintBoundaryKey),
                   AppHeader(repaintBoundaryKey: _repaintBoundaryKey),
-                  const FloatingToolbar(),
+                  FloatingToolbar(repaintBoundaryKey: _repaintBoundaryKey),
                   const SliderPanel(),
                   if (_showGestureHint) _buildGestureHint(),
+                  if (provider.isSelectMode) _buildSelectionHint(),
                 ],
               ),
             ),
@@ -78,6 +79,31 @@ class _CanvasScreenState extends State<CanvasScreen> {
           ),
           child: const Text(
             '👆 두 손가락 탭: 실행 취소 | 세 손가락 탭: 다시 실행',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectionHint() {
+    return Positioned(
+      top: 80,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF34C759).withOpacity(0.95),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Text(
+            '📐 드래그하여 텍스트 인식할 영역을 선택하세요',
             style: TextStyle(
               color: Colors.white,
               fontSize: 14,
