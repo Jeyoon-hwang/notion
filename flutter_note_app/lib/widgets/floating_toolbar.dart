@@ -65,10 +65,43 @@ class FloatingToolbar extends StatelessWidget {
                     isDarkMode: provider.isDarkMode,
                     label: '선택',
                   ),
+                  const SizedBox(width: 12),
+                  _ToolButton(
+                    icon: '⬡',
+                    isActive: provider.mode == DrawingMode.shape,
+                    onTap: () => provider.setMode(DrawingMode.shape),
+                    isDarkMode: provider.isDarkMode,
+                    label: '도형',
+                  ),
+
+                  // Auto-shape toggle (only show when pen mode)
+                  if (provider.mode == DrawingMode.pen) ...[
+                    const SizedBox(width: 12),
+                    _ToolButton(
+                      icon: '✨',
+                      isActive: provider.autoShapeEnabled,
+                      onTap: () => provider.toggleAutoShape(),
+                      isDarkMode: provider.isDarkMode,
+                      label: '자동',
+                    ),
+                  ],
+
                   const SizedBox(width: 15),
                   _Divider(isDarkMode: provider.isDarkMode),
                   const SizedBox(width: 15),
-                  
+
+                  // Shape conversion button (only show when selection exists)
+                  if (provider.selectionRect != null) ...[
+                    _OCRButton(
+                      icon: Icons.auto_fix_high,
+                      label: '도형변환',
+                      onTap: () => provider.convertSelectionToShapes(),
+                      isDarkMode: provider.isDarkMode,
+                      isLoading: false,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+
                   // OCR buttons (only show when selection exists)
                   if (provider.selectionRect != null) ...[
                     _OCRButton(

@@ -42,6 +42,7 @@ class DrawingCanvas extends StatelessWidget {
                     opacity: provider.opacity,
                     isEraser: provider.isEraser,
                     isDarkMode: provider.isDarkMode,
+                    shapePreview: provider.isShapeMode ? provider.getShapePreview() : [],
                   ),
                   child: Container(
                     width: double.infinity,
@@ -77,6 +78,7 @@ class DrawingPainter extends CustomPainter {
   final double opacity;
   final bool isEraser;
   final bool isDarkMode;
+  final List<DrawingPoint> shapePreview;
 
   DrawingPainter({
     required this.strokes,
@@ -86,6 +88,7 @@ class DrawingPainter extends CustomPainter {
     required this.opacity,
     required this.isEraser,
     required this.isDarkMode,
+    this.shapePreview = const [],
   });
 
   @override
@@ -105,6 +108,18 @@ class DrawingPainter extends CustomPainter {
         isEraser: isEraser,
       );
       _drawStroke(canvas, currentStrokeData);
+    }
+
+    // Draw shape preview
+    if (shapePreview.isNotEmpty) {
+      final previewStroke = DrawingStroke(
+        points: shapePreview,
+        color: currentColor,
+        width: lineWidth,
+        opacity: opacity * 0.6, // Slightly transparent for preview
+        isEraser: false,
+      );
+      _drawStroke(canvas, previewStroke);
     }
   }
 
@@ -140,6 +155,7 @@ class DrawingPainter extends CustomPainter {
   bool shouldRepaint(DrawingPainter oldDelegate) {
     return oldDelegate.strokes != strokes ||
         oldDelegate.currentStroke != currentStroke ||
+        oldDelegate.shapePreview != shapePreview ||
         oldDelegate.isDarkMode != isDarkMode;
   }
 }

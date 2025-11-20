@@ -3,6 +3,7 @@ import '../widgets/drawing_canvas.dart';
 import '../widgets/header.dart';
 import '../widgets/floating_toolbar.dart';
 import '../widgets/slider_panel.dart';
+import '../widgets/shape_palette.dart';
 import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
 
@@ -54,8 +55,10 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   AppHeader(repaintBoundaryKey: _repaintBoundaryKey),
                   FloatingToolbar(repaintBoundaryKey: _repaintBoundaryKey),
                   const SliderPanel(),
+                  const ShapePalette(),
                   if (_showGestureHint) _buildGestureHint(),
                   if (provider.isSelectMode) _buildSelectionHint(),
+                  if (provider.isShapeMode) _buildShapeHint(),
                 ],
               ),
             ),
@@ -109,6 +112,28 @@ class _CanvasScreenState extends State<CanvasScreen> {
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShapeHint() {
+    return Positioned(
+      top: 80,
+      right: 20,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF667EEA).withOpacity(0.95),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text(
+          '⬡ 도형을 선택하고 드래그하여 그리세요',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
