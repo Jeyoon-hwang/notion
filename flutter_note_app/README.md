@@ -4,6 +4,7 @@
 
 ## 📱 Features
 
+### 기본 기능
 - ✏️ **자연스러운 필기**: 압력 감지 지원 (Apple Pencil, S Pen)
 - 🎨 **다양한 색상**: 6가지 프리셋 + 커스텀 색상 선택기
 - 🧹 **지우개**: 픽셀 단위 지우기
@@ -12,10 +13,23 @@
 - 💾 **이미지 저장**: PNG 형식으로 갤러리에 저장
 - 📐 **선 두께 조절**: 1-30px
 - 💧 **투명도 조절**: 0.1-1.0
-- 👆 **제스처 지원**: 
+- 👆 **제스처 지원**:
   - 2손가락 탭: Undo
   - 3손가락 탭: Redo
 - 📱 **반응형**: 세로/가로 모드 모두 지원
+
+### 🔥 NEW! OCR 기능
+- 📝 **손글씨 인식**: Google ML Kit 기반 텍스트 인식
+- 🔢 **수학 공식 인식**: 수식 자동 감지 및 LaTeX 변환
+- ⬚ **선택 도구**: 드래그하여 인식할 영역 선택
+- 📋 **복사 기능**: 인식된 텍스트/수식 클립보드 복사
+- ✨ **LaTeX 렌더링**: 아름다운 수식 표시
+
+#### 지원하는 수학 기호
+- 기본 연산: +, -, ×, ÷, =
+- 고급 기호: √, ∫, ∑, π, α, β, θ
+- 비교 연산: ≠, ≤, ≥, ∞
+- 자동 변환: 분수, 지수, 제곱근
 
 ## 🛠 Tech Stack
 
@@ -23,6 +37,8 @@
 - **Dart 3.0+**
 - **Provider** (상태 관리)
 - **CustomPainter** (고성능 드로잉)
+- **Google ML Kit** (텍스트 인식)
+- **flutter_math_fork** (LaTeX 렌더링)
 - **path_provider** (파일 저장)
 - **image_gallery_saver** (이미지 저장)
 
@@ -34,15 +50,43 @@ lib/
 ├── models/
 │   └── drawing_stroke.dart        # 드로잉 데이터 모델
 ├── providers/
-│   └── drawing_provider.dart      # 상태 관리
+│   └── drawing_provider.dart      # 상태 관리 (+ OCR)
+├── services/
+│   └── ocr_service.dart          # OCR & LaTeX 변환 서비스
 ├── screens/
 │   └── canvas_screen.dart         # 메인 화면
 └── widgets/
     ├── drawing_canvas.dart        # CustomPainter 캔버스
     ├── header.dart                # 상단 헤더
-    ├── floating_toolbar.dart      # 하단 툴바
-    └── slider_panel.dart          # 슬라이더 패널
+    ├── floating_toolbar.dart      # 하단 툴바 (+ OCR 버튼)
+    ├── slider_panel.dart          # 슬라이더 패널
+    └── ocr_result_dialog.dart    # OCR 결과 다이얼로그
 ```
+
+## 📖 OCR 사용법
+
+### 1. 텍스트 인식
+1. 툴바에서 선택 도구 (⬚) 클릭
+2. 인식할 손글씨 영역을 드래그하여 선택
+3. 나타나는 "텍스트" 버튼 클릭
+4. 인식된 텍스트를 복사하거나 확인
+
+### 2. 수학 공식 인식
+1. 툴바에서 선택 도구 (⬚) 클릭
+2. 수식이 포함된 영역을 드래그하여 선택
+3. 나타나는 "수식" 버튼 클릭
+4. 수식이 LaTeX로 변환되어 표시됨
+5. 렌더링된 수식 확인 및 LaTeX 코드 복사
+
+### 수식 작성 팁
+- 명확하게 작성: 글자 간 충분한 간격
+- 표준 기호 사용: ×, ÷, √ 등
+- 간단한 식부터: 복잡한 식은 단계별로
+- 예시:
+  - `2 + 3 = 5` ✅
+  - `x^2 + 2x + 1` ✅
+  - `√(16) = 4` ✅
+  - `∫ f(x) dx` ✅
 
 ## 🚀 Getting Started
 
