@@ -534,16 +534,43 @@ class DrawingProvider extends ChangeNotifier {
       );
 
       final result = await _ocrService.processHandwriting(croppedImage);
-      
+
       _isProcessingOCR = false;
       notifyListeners();
-      
+
       return result;
     } catch (e) {
       print('Error recognizing text: $e');
       _isProcessingOCR = false;
       notifyListeners();
       return null;
+    }
+  }
+
+  // Convert OCR result to LaTeX text object
+  Future<void> convertSelectionToLatex(GlobalKey repaintBoundaryKey) async {
+    final result = await recognizeSelection(repaintBoundaryKey);
+
+    if (result != null && _selectionRect != null) {
+      final text = result['text'] as String;
+      final isMath = result['isMath'] as bool;
+      final latex = result['latex'] as String;
+
+      if (text.isNotEmpty) {
+        // Add as text object at selection center
+        final center = _selectionRect!.center;
+        _textInputPosition = center;
+
+        if (isMath && latex.isNotEmpty) {
+          // Add as LaTeX
+          addTextObject(latex, type: TextType.latex);
+        } else {
+          // Add as normal text
+          addTextObject(text, type: TextType.normal);
+        }
+
+        clearSelection();
+      }
     }
   }
 

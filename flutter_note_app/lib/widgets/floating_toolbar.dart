@@ -127,6 +127,15 @@ class FloatingToolbar extends StatelessWidget {
                       isDarkMode: provider.isDarkMode,
                       isLoading: provider.isProcessingOCR,
                     ),
+                    const SizedBox(width: 12),
+                    _OCRButton(
+                      icon: Icons.auto_awesome,
+                      label: '글씨→LaTeX',
+                      onTap: () => _convertToLatex(context, provider),
+                      isDarkMode: provider.isDarkMode,
+                      isLoading: provider.isProcessingOCR,
+                      color: const Color(0xFFFF9500), // Orange color
+                    ),
                     const SizedBox(width: 15),
                     _Divider(isDarkMode: provider.isDarkMode),
                     const SizedBox(width: 15),
@@ -196,6 +205,31 @@ class FloatingToolbar extends StatelessWidget {
         ),
       );
       provider.clearSelection();
+    }
+  }
+
+  Future<void> _convertToLatex(BuildContext context, DrawingProvider provider) async {
+    await provider.convertSelectionToLatex(repaintBoundaryKey);
+
+    if (context.mounted) {
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('손글씨가 LaTeX로 변환되어 캔버스에 추가되었습니다'),
+            ],
+          ),
+          backgroundColor: const Color(0xFF34C759),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 
@@ -318,6 +352,7 @@ class _OCRButton extends StatelessWidget {
   final VoidCallback onTap;
   final bool isDarkMode;
   final bool isLoading;
+  final Color color;
 
   const _OCRButton({
     required this.icon,
@@ -325,6 +360,7 @@ class _OCRButton extends StatelessWidget {
     required this.onTap,
     required this.isDarkMode,
     required this.isLoading,
+    this.color = const Color(0xFF34C759),
   });
 
   @override
@@ -334,11 +370,11 @@ class _OCRButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF34C759),
+          color: color,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF34C759).withOpacity(0.3),
+              color: color.withOpacity(0.3),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
