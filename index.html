@@ -2,260 +2,494 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>디지털 필기앱 - Digital Note</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Digital Note - 디지털 필기</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
             overflow: hidden;
-            background-color: #f5f5f5;
-            transition: background-color 0.3s;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: fixed;
+            width: 100%;
+            height: 100%;
         }
 
         body.dark-mode {
-            background-color: #1e1e1e;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
         }
 
-        .toolbar {
+        /* 캔버스 */
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            cursor: crosshair;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        body.dark-mode #canvas {
+            background: #1e1e1e;
+        }
+
+        /* 상단 헤더 */
+        .header {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            background: white;
-            border-bottom: 1px solid #e0e0e0;
-            padding: 12px 20px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
-            gap: 15px;
+            justify-content: space-between;
+            padding: 0 20px;
             z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            transition: background-color 0.3s, border-color 0.3s;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
 
-        body.dark-mode .toolbar {
-            background: #2d2d2d;
-            border-bottom-color: #404040;
+        body.dark-mode .header {
+            background: rgba(30, 30, 30, 0.95);
         }
 
-        .tool-group {
+        .app-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
             display: flex;
-            gap: 8px;
             align-items: center;
-            padding-right: 15px;
-            border-right: 1px solid #e0e0e0;
+            gap: 8px;
         }
 
-        body.dark-mode .tool-group {
-            border-right-color: #404040;
+        body.dark-mode .app-title {
+            color: #8b9cff;
         }
 
-        .tool-group:last-child {
-            border-right: none;
+        .header-actions {
+            display: flex;
+            gap: 12px;
         }
 
-        .tool-btn {
-            padding: 8px 16px;
-            border: 1px solid #d0d0d0;
-            background: #fafafa;
-            border-radius: 6px;
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: none;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-            color: #333;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        body.dark-mode .icon-btn {
+            background: #2d2d2d;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 플로팅 툴바 */
+        .floating-toolbar {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 15px 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s;
+        }
+
+        body.dark-mode .floating-toolbar {
+            background: rgba(45, 45, 45, 0.98);
+        }
+
+        .toolbar-divider {
+            width: 1px;
+            height: 30px;
+            background: #e0e0e0;
+        }
+
+        body.dark-mode .toolbar-divider {
+            background: #404040;
+        }
+
+        /* 도구 버튼 */
+        .tool-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
         }
 
         body.dark-mode .tool-btn {
             background: #3a3a3a;
-            border-color: #555;
-            color: #e0e0e0;
-        }
-
-        .tool-btn:hover {
-            background: #e8e8e8;
-            border-color: #999;
-        }
-
-        body.dark-mode .tool-btn:hover {
-            background: #4a4a4a;
-            border-color: #666;
         }
 
         .tool-btn.active {
-            background: #007aff;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .tool-btn:active {
+            transform: scale(0.95);
+        }
+
+        .tool-label {
+            font-size: 9px;
+            margin-top: 2px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        body.dark-mode .tool-label {
+            color: #aaa;
+        }
+
+        .tool-btn.active .tool-label {
             color: white;
-            border-color: #007aff;
         }
 
-        body.dark-mode .tool-btn.active {
-            background: #0a84ff;
-            border-color: #0a84ff;
+        /* 색상 팔레트 */
+        .color-palette {
+            display: flex;
+            gap: 10px;
+            padding: 5px;
         }
 
-        .color-picker {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #d0d0d0;
-            border-radius: 6px;
+        .color-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 3px solid transparent;
             cursor: pointer;
-            transition: border-color 0.2s;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
-        .color-picker:hover {
-            border-color: #007aff;
+        .color-btn:active {
+            transform: scale(0.9);
+        }
+
+        .color-btn.active {
+            border-color: #667eea;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        /* 슬라이더 패널 */
+        .slider-panel {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 20px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            z-index: 999;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        body.dark-mode .slider-panel {
+            background: rgba(45, 45, 45, 0.95);
         }
 
         .slider-group {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
         }
 
-        .slider-group label {
-            font-size: 13px;
-            color: #666;
-            min-width: 60px;
+        .slider-icon {
+            font-size: 24px;
         }
 
-        body.dark-mode .slider-group label {
-            color: #aaa;
-        }
-
-        .slider {
-            width: 100px;
-            height: 6px;
+        .vertical-slider {
+            -webkit-appearance: slider-vertical;
+            width: 6px;
+            height: 150px;
+            background: linear-gradient(to top, #667eea, #764ba2);
             border-radius: 3px;
             outline: none;
             cursor: pointer;
         }
 
-        .value-display {
-            font-size: 13px;
-            color: #333;
-            min-width: 30px;
-            font-weight: 500;
+        .slider-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 35px;
+            text-align: center;
+            padding: 6px 10px;
+            background: #f0f0f0;
+            border-radius: 8px;
         }
 
-        body.dark-mode .value-display {
-            color: #e0e0e0;
+        body.dark-mode .slider-value {
+            background: #2d2d2d;
+            color: #8b9cff;
         }
 
-        #canvas {
+        /* 제스처 힌트 */
+        .gesture-hint {
             position: fixed;
-            top: 65px;
-            left: 0;
-            cursor: crosshair;
-            background: white;
-            transition: background-color 0.3s;
-        }
-
-        body.dark-mode #canvas {
-            background: #252525;
-        }
-
-        .app-title {
-            font-size: 18px;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(102, 126, 234, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-size: 14px;
             font-weight: 600;
-            color: #333;
-            margin-right: auto;
+            z-index: 999;
+            animation: fadeInOut 3s ease-in-out;
+            pointer-events: none;
         }
 
-        body.dark-mode .app-title {
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            90% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+        }
+
+        /* 툴팁 */
+        .tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 10000;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* 모달 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        body.dark-mode .modal-content {
+            background: #2d2d2d;
             color: #e0e0e0;
         }
 
-        .history-btns {
-            display: flex;
-            gap: 8px;
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #667eea;
         }
 
-        .color-preset {
-            width: 30px;
-            height: 30px;
-            border-radius: 4px;
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            border: 2px solid transparent;
-            transition: border-color 0.2s;
+            transition: all 0.3s;
         }
 
-        .color-preset:hover {
-            border-color: #007aff;
+        .modal-btn.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
 
-        .color-presets {
-            display: flex;
-            gap: 6px;
+        .modal-btn.secondary {
+            background: #f0f0f0;
+            color: #333;
         }
 
+        body.dark-mode .modal-btn.secondary {
+            background: #3a3a3a;
+            color: #e0e0e0;
+        }
+
+        .modal-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 반응형 */
         @media (max-width: 768px) {
-            .toolbar {
-                flex-wrap: wrap;
-                padding: 8px 10px;
+            .floating-toolbar {
+                bottom: 20px;
+                padding: 12px 15px;
+                gap: 12px;
             }
 
-            .tool-group {
-                padding-right: 10px;
+            .tool-btn {
+                width: 45px;
+                height: 45px;
             }
 
-            .app-title {
-                width: 100%;
-                margin-bottom: 8px;
+            .slider-panel {
+                left: 10px;
+            }
+        }
+
+        @media (orientation: landscape) and (max-height: 600px) {
+            .slider-panel {
+                flex-direction: row;
+                left: 50%;
+                top: auto;
+                bottom: 20px;
+                transform: translateX(-50%);
             }
 
-            .slider-group {
-                display: none;
+            .vertical-slider {
+                -webkit-appearance: slider-horizontal;
+                width: 120px;
+                height: 6px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <div class="app-title">📝 Digital Note</div>
-
-        <div class="tool-group">
-            <button class="tool-btn active" id="penBtn" title="펜 (P)">✏️ 펜</button>
-            <button class="tool-btn" id="eraserBtn" title="지우개 (E)">🧹 지우개</button>
+    <!-- 헤더 -->
+    <div class="header">
+        <div class="app-title">
+            <span>✏️</span>
+            <span>Digital Note</span>
         </div>
-
-        <div class="tool-group color-presets">
-            <div class="color-preset" style="background: #000000" data-color="#000000"></div>
-            <div class="color-preset" style="background: #FF0000" data-color="#FF0000"></div>
-            <div class="color-preset" style="background: #0000FF" data-color="#0000FF"></div>
-            <div class="color-preset" style="background: #00CC00" data-color="#00CC00"></div>
-            <div class="color-preset" style="background: #FFD700" data-color="#FFD700"></div>
-            <input type="color" class="color-picker" id="colorPicker" value="#000000" title="색상 선택">
-        </div>
-
-        <div class="tool-group slider-group">
-            <label for="lineWidth">두께:</label>
-            <input type="range" id="lineWidth" class="slider" min="1" max="20" value="2">
-            <span class="value-display" id="lineWidthValue">2</span>
-        </div>
-
-        <div class="tool-group slider-group">
-            <label for="opacity">투명도:</label>
-            <input type="range" id="opacity" class="slider" min="0.1" max="1" step="0.1" value="1">
-            <span class="value-display" id="opacityValue">1.0</span>
-        </div>
-
-        <div class="tool-group history-btns">
-            <button class="tool-btn" id="undoBtn" title="실행 취소 (Ctrl+Z)">↶ Undo</button>
-            <button class="tool-btn" id="redoBtn" title="다시 실행 (Ctrl+Y)">↷ Redo</button>
-        </div>
-
-        <div class="tool-group">
-            <button class="tool-btn" id="clearBtn" title="전체 지우기">🗑️ Clear</button>
-            <button class="tool-btn" id="downloadBtn" title="이미지로 저장">💾 저장</button>
-            <button class="tool-btn" id="darkModeBtn" title="다크 모드 (D)">🌙 다크</button>
+        <div class="header-actions">
+            <button class="icon-btn" id="undoBtn" title="실행 취소">↶</button>
+            <button class="icon-btn" id="redoBtn" title="다시 실행">↷</button>
+            <button class="icon-btn" id="clearBtn" title="전체 지우기">🗑️</button>
+            <button class="icon-btn" id="downloadBtn" title="저장">💾</button>
+            <button class="icon-btn" id="darkModeBtn" title="다크 모드">🌙</button>
         </div>
     </div>
 
+    <!-- 캔버스 -->
     <canvas id="canvas"></canvas>
+
+    <!-- 슬라이더 패널 -->
+    <div class="slider-panel">
+        <div class="slider-group">
+            <div class="slider-icon">📏</div>
+            <input type="range" class="vertical-slider" id="lineWidth" min="1" max="30" value="3" orient="vertical">
+            <div class="slider-value" id="lineWidthValue">3</div>
+        </div>
+        <div class="slider-group">
+            <div class="slider-icon">💧</div>
+            <input type="range" class="vertical-slider" id="opacity" min="0.1" max="1" step="0.1" value="1" orient="vertical">
+            <div class="slider-value" id="opacityValue">1.0</div>
+        </div>
+    </div>
+
+    <!-- 플로팅 툴바 -->
+    <div class="floating-toolbar">
+        <button class="tool-btn active" id="penBtn">
+            <span>✏️</span>
+        </button>
+        <button class="tool-btn" id="eraserBtn">
+            <span>🧹</span>
+        </button>
+        <div class="toolbar-divider"></div>
+        <div class="color-palette">
+            <div class="color-btn active" style="background: #000000;" data-color="#000000"></div>
+            <div class="color-btn" style="background: #FF3B30;" data-color="#FF3B30"></div>
+            <div class="color-btn" style="background: #007AFF;" data-color="#007AFF"></div>
+            <div class="color-btn" style="background: #34C759;" data-color="#34C759"></div>
+            <div class="color-btn" style="background: #FF9500;" data-color="#FF9500"></div>
+            <div class="color-btn" style="background: #AF52DE;" data-color="#AF52DE"></div>
+        </div>
+        <div class="toolbar-divider"></div>
+        <input type="color" class="icon-btn" id="colorPicker" value="#000000" title="색상 선택" style="padding: 0; cursor: pointer;">
+    </div>
+
+    <!-- 제스처 힌트 -->
+    <div class="gesture-hint" id="gestureHint" style="display: none;">
+        👆 두 손가락 탭: 실행 취소 | 세 손가락 탭: 다시 실행
+    </div>
+
+    <!-- 모달 -->
+    <div class="modal" id="clearModal">
+        <div class="modal-content">
+            <div class="modal-title">전체 지우기</div>
+            <p>모든 내용을 지우시겠습니까?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" id="cancelClear">취소</button>
+                <button class="modal-btn primary" id="confirmClear">지우기</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // Canvas 초기화
@@ -264,8 +498,10 @@
 
         // 캔버스 크기 설정
         function resizeCanvas() {
+            const oldData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - 65;
+            canvas.height = window.innerHeight;
+            ctx.putImageData(oldData, 0, 0);
             redrawCanvas();
         }
         resizeCanvas();
@@ -275,31 +511,61 @@
         let isDrawing = false;
         let currentTool = 'pen';
         let currentColor = '#000000';
-        let lineWidth = 2;
+        let lineWidth = 3;
         let opacity = 1.0;
 
-        // Undo/Redo 기능을 위한 히스토리
+        // Undo/Redo
         let history = [];
         let historyStep = -1;
         const maxHistory = 50;
 
-        // 현재 획 데이터 (벡터 기반)
+        // 획 데이터 (벡터)
         let currentStroke = [];
         let strokes = [];
 
-        // 캔버스에 그리기
+        // 터치 제스처
+        let touchStartTime = 0;
+        let touches = [];
+
+        // 압력 감지
+        let lastPressure = 0.5;
+
+        // 제스처 힌트 표시
+        setTimeout(() => {
+            const hint = document.getElementById('gestureHint');
+            hint.style.display = 'block';
+        }, 1000);
+
+        // 그리기 함수
         function draw(e) {
             if (!isDrawing) return;
 
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            let x, y, pressure = 0.5;
 
-            currentStroke.push({ x, y });
+            if (e.touches) {
+                const touch = e.touches[0];
+                x = touch.clientX - rect.left;
+                y = touch.clientY - rect.top;
+                pressure = touch.force || 0.5;
+            } else {
+                x = e.clientX - rect.left;
+                y = e.clientY - rect.top;
+                pressure = e.pressure || 0.5;
+            }
+
+            lastPressure = pressure;
+            currentStroke.push({ x, y, pressure });
 
             ctx.globalAlpha = opacity;
-            ctx.strokeStyle = currentTool === 'eraser' ? (document.body.classList.contains('dark-mode') ? '#252525' : '#ffffff') : currentColor;
-            ctx.lineWidth = currentTool === 'eraser' ? lineWidth * 2 : lineWidth;
+            const adjustedWidth = currentTool === 'eraser'
+                ? lineWidth * 3
+                : lineWidth * (0.5 + pressure);
+
+            ctx.strokeStyle = currentTool === 'eraser'
+                ? (document.body.classList.contains('dark-mode') ? '#1e1e1e' : '#ffffff')
+                : currentColor;
+            ctx.lineWidth = adjustedWidth;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
@@ -307,7 +573,6 @@
                 ctx.beginPath();
                 ctx.moveTo(x, y);
             } else {
-                const prevPoint = currentStroke[currentStroke.length - 2];
                 ctx.lineTo(x, y);
                 ctx.stroke();
                 ctx.beginPath();
@@ -315,17 +580,14 @@
             }
         }
 
-        // 그리기 시작
         function startDrawing(e) {
             isDrawing = true;
             currentStroke = [];
             draw(e);
         }
 
-        // 그리기 종료
         function stopDrawing() {
             if (isDrawing && currentStroke.length > 0) {
-                // 획 저장 (벡터 데이터)
                 strokes.push({
                     points: [...currentStroke],
                     color: currentColor,
@@ -340,7 +602,6 @@
             ctx.beginPath();
         }
 
-        // 상태 저장 (Undo/Redo용)
         function saveState() {
             historyStep++;
             if (historyStep < history.length) {
@@ -353,28 +614,33 @@
             }
         }
 
-        // 캔버스 다시 그리기
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             strokes.forEach(stroke => {
                 ctx.globalAlpha = stroke.opacity;
-                ctx.strokeStyle = stroke.tool === 'eraser' ? (document.body.classList.contains('dark-mode') ? '#252525' : '#ffffff') : stroke.color;
-                ctx.lineWidth = stroke.tool === 'eraser' ? stroke.width * 2 : stroke.width;
+                ctx.strokeStyle = stroke.tool === 'eraser'
+                    ? (document.body.classList.contains('dark-mode') ? '#1e1e1e' : '#ffffff')
+                    : stroke.color;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
                 ctx.beginPath();
                 stroke.points.forEach((point, index) => {
+                    const pressure = point.pressure || 0.5;
+                    ctx.lineWidth = stroke.tool === 'eraser'
+                        ? stroke.width * 3
+                        : stroke.width * (0.5 + pressure);
                     if (index === 0) {
                         ctx.moveTo(point.x, point.y);
                     } else {
                         ctx.lineTo(point.x, point.y);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(point.x, point.y);
                     }
                 });
-                ctx.stroke();
             });
         }
 
-        // Undo
         function undo() {
             if (historyStep > 0) {
                 historyStep--;
@@ -384,13 +650,10 @@
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0);
                 };
-                if (strokes.length > 0) {
-                    strokes.pop();
-                }
+                if (strokes.length > 0) strokes.pop();
             }
         }
 
-        // Redo
         function redo() {
             if (historyStep < history.length - 1) {
                 historyStep++;
@@ -403,16 +666,12 @@
             }
         }
 
-        // Clear
         function clearCanvas() {
-            if (confirm('모든 내용을 지우시겠습니까?')) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                strokes = [];
-                saveState();
-            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            strokes = [];
+            saveState();
         }
 
-        // 이미지 저장
         function downloadImage() {
             const link = document.createElement('a');
             link.download = `note_${new Date().getTime()}.png`;
@@ -420,48 +679,58 @@
             link.click();
         }
 
-        // 다크 모드 토글
         function toggleDarkMode() {
             document.body.classList.toggle('dark-mode');
             const isDark = document.body.classList.contains('dark-mode');
-            document.getElementById('darkModeBtn').innerHTML = isDark ? '☀️ 라이트' : '🌙 다크';
+            document.getElementById('darkModeBtn').innerHTML = isDark ? '☀️' : '🌙';
             redrawCanvas();
         }
 
-        // 이벤트 리스너
+        // 캔버스 이벤트
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
         canvas.addEventListener('mouseout', stopDrawing);
 
-        // 터치 이벤트 (모바일 지원)
+        // 터치 이벤트
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            canvas.dispatchEvent(mouseEvent);
-        });
+            touchStartTime = Date.now();
+            touches = Array.from(e.touches);
+
+            if (e.touches.length === 1) {
+                startDrawing(e);
+            } else if (e.touches.length === 2) {
+                // 두 손가락 탭 = Undo
+                setTimeout(() => {
+                    if (touches.length === 2 && Date.now() - touchStartTime < 300) {
+                        undo();
+                    }
+                }, 300);
+            } else if (e.touches.length === 3) {
+                // 세 손가락 탭 = Redo
+                setTimeout(() => {
+                    if (touches.length === 3 && Date.now() - touchStartTime < 300) {
+                        redo();
+                    }
+                }, 300);
+            }
+        }, { passive: false });
 
         canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            canvas.dispatchEvent(mouseEvent);
-        });
+            if (e.touches.length === 1) {
+                draw(e);
+            }
+        }, { passive: false });
 
         canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
-            const mouseEvent = new MouseEvent('mouseup', {});
-            canvas.dispatchEvent(mouseEvent);
-        });
+            stopDrawing();
+            touches = Array.from(e.touches);
+        }, { passive: false });
 
-        // 도구 버튼
+        // 버튼 이벤트
         document.getElementById('penBtn').addEventListener('click', () => {
             currentTool = 'pen';
             document.getElementById('penBtn').classList.add('active');
@@ -474,56 +743,48 @@
             document.getElementById('penBtn').classList.remove('active');
         });
 
-        // 색상 선택
         document.getElementById('colorPicker').addEventListener('input', (e) => {
             currentColor = e.target.value;
+            document.querySelectorAll('.color-btn').forEach(btn => btn.classList.remove('active'));
         });
 
-        // 프리셋 색상
-        document.querySelectorAll('.color-preset').forEach(preset => {
-            preset.addEventListener('click', (e) => {
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
                 currentColor = e.target.dataset.color;
                 document.getElementById('colorPicker').value = currentColor;
+                document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
             });
         });
 
-        // 두께 조절
         document.getElementById('lineWidth').addEventListener('input', (e) => {
             lineWidth = parseInt(e.target.value);
             document.getElementById('lineWidthValue').textContent = lineWidth;
         });
 
-        // 투명도 조절
         document.getElementById('opacity').addEventListener('input', (e) => {
             opacity = parseFloat(e.target.value);
             document.getElementById('opacityValue').textContent = opacity.toFixed(1);
         });
 
-        // 기타 버튼
         document.getElementById('undoBtn').addEventListener('click', undo);
         document.getElementById('redoBtn').addEventListener('click', redo);
-        document.getElementById('clearBtn').addEventListener('click', clearCanvas);
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('clearModal').classList.add('active');
+        });
+
+        document.getElementById('confirmClear').addEventListener('click', () => {
+            clearCanvas();
+            document.getElementById('clearModal').classList.remove('active');
+        });
+
+        document.getElementById('cancelClear').addEventListener('click', () => {
+            document.getElementById('clearModal').classList.remove('active');
+        });
+
         document.getElementById('downloadBtn').addEventListener('click', downloadImage);
         document.getElementById('darkModeBtn').addEventListener('click', toggleDarkMode);
-
-        // 키보드 단축키
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                if (e.key === 'z') {
-                    e.preventDefault();
-                    undo();
-                } else if (e.key === 'y') {
-                    e.preventDefault();
-                    redo();
-                }
-            } else if (e.key === 'p' || e.key === 'P') {
-                document.getElementById('penBtn').click();
-            } else if (e.key === 'e' || e.key === 'E') {
-                document.getElementById('eraserBtn').click();
-            } else if (e.key === 'd' || e.key === 'D') {
-                toggleDarkMode();
-            }
-        });
 
         // 초기 상태 저장
         saveState();
