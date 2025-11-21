@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
@@ -6,95 +7,146 @@ import '../screens/settings_screen.dart';
 class AppHeader extends StatelessWidget {
   final GlobalKey repaintBoundaryKey;
 
-  const AppHeader({Key? key, required this.repaintBoundaryKey})
-      : super(key: key);
+  const AppHeader({Key? key, required this.repaintBoundaryKey}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
-        return Container(
-          height: 60,
-          decoration: BoxDecoration(
-            color: provider.isDarkMode
-                ? Colors.black.withOpacity(0.95)
-                : Colors.white.withOpacity(0.95),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(0)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              height: 70,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: provider.isDarkMode
+                      ? [
+                          Colors.black.withOpacity(0.8),
+                          Colors.black.withOpacity(0.6),
+                        ]
+                      : [
+                          Colors.white.withOpacity(0.8),
+                          Colors.white.withOpacity(0.6),
+                        ],
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: provider.isDarkMode
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.1),
+                    width: 1,
+                  ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('✏️', style: TextStyle(fontSize: 24)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Digital Note',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: provider.isDarkMode
-                            ? const Color(0xFF8B9CFF)
-                            : const Color(0xFF667EEA),
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    _IconButton(
-                      icon: '↶',
-                      onTap: provider.canUndo ? provider.undo : null,
-                      isDarkMode: provider.isDarkMode,
-                    ),
-                    const SizedBox(width: 12),
-                    _IconButton(
-                      icon: '↷',
-                      onTap: provider.canRedo ? provider.redo : null,
-                      isDarkMode: provider.isDarkMode,
-                    ),
-                    const SizedBox(width: 12),
-                    _IconButton(
-                      icon: '🗑️',
-                      onTap: () => _showClearDialog(context, provider),
-                      isDarkMode: provider.isDarkMode,
-                    ),
-                    const SizedBox(width: 12),
-                    _IconButton(
-                      icon: '💾',
-                      onTap: () => provider.saveImage(repaintBoundaryKey),
-                      isDarkMode: provider.isDarkMode,
-                    ),
-                    const SizedBox(width: 12),
-                    _IconButton(
-                      icon: provider.isDarkMode ? '☀️' : '🌙',
-                      onTap: provider.toggleDarkMode,
-                      isDarkMode: provider.isDarkMode,
-                    ),
-                    const SizedBox(width: 12),
-                    _IconButton(
-                      icon: '⚙️',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const SettingsScreen(),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF667EEA).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                      isDarkMode: provider.isDarkMode,
+                          child: const Icon(
+                            Icons.draw,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Digital Note',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
+                            foreground: Paint()
+                              ..shader = const LinearGradient(
+                                colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                              ).createShader(const Rect.fromLTWH(0, 0, 200, 70)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        _ModernIconButton(
+                          icon: Icons.undo_rounded,
+                          onTap: provider.canUndo ? provider.undo : null,
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: provider.canUndo,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernIconButton(
+                          icon: Icons.redo_rounded,
+                          onTap: provider.canRedo ? provider.redo : null,
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: provider.canRedo,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernIconButton(
+                          icon: Icons.delete_outline_rounded,
+                          onTap: () => _showClearDialog(context, provider),
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: true,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernIconButton(
+                          icon: Icons.save_alt_rounded,
+                          onTap: () => provider.saveImage(repaintBoundaryKey),
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: true,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernIconButton(
+                          icon: provider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
+                          onTap: provider.toggleDarkMode,
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: true,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernIconButton(
+                          icon: Icons.settings_outlined,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsScreen(),
+                              ),
+                            );
+                          },
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: true,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         );
@@ -105,66 +157,132 @@ class AppHeader extends StatelessWidget {
   void _showClearDialog(BuildContext context, DrawingProvider provider) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('전체 지우기'),
-        content: const Text('모든 내용을 지우시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
           ),
-          TextButton(
-            onPressed: () {
-              provider.clear();
-              Navigator.pop(context);
-            },
-            child: const Text('지우기'),
+          backgroundColor: provider.isDarkMode ? const Color(0xFF2A2A2A) : Colors.white,
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF3B30).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFFF3B30),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '전체 지우기',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-        ],
+          content: Text(
+            '모든 내용을 지우시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
+            style: TextStyle(
+              fontSize: 15,
+              color: provider.isDarkMode ? Colors.white70 : Colors.black54,
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                '취소',
+                style: TextStyle(
+                  color: provider.isDarkMode ? Colors.white70 : Colors.black54,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                provider.clear();
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                backgroundColor: const Color(0xFFFF3B30),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                '지우기',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _IconButton extends StatelessWidget {
-  final String icon;
+class _ModernIconButton extends StatelessWidget {
+  final IconData icon;
   final VoidCallback? onTap;
   final bool isDarkMode;
+  final bool isEnabled;
 
-  const _IconButton({
+  const _ModernIconButton({
     required this.icon,
     required this.onTap,
     required this.isDarkMode,
+    required this.isEnabled,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: isEnabled ? onTap : null,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: isEnabled ? 1.0 : 0.3,
         child: Container(
           width: 44,
           height: 44,
           decoration: BoxDecoration(
             color: isDarkMode
-                ? const Color(0xFF2D2D2D)
-                : const Color(0xFFF0F0F0),
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              icon,
-              style: const TextStyle(fontSize: 20),
+            border: Border.all(
+              color: isDarkMode
+                  ? Colors.white.withOpacity(0.1)
+                  : Colors.black.withOpacity(0.05),
+              width: 1,
             ),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black.withOpacity(0.7),
           ),
         ),
       ),

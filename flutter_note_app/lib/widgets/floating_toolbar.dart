@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
@@ -23,153 +24,179 @@ class FloatingToolbar extends StatelessWidget {
       builder: (context, provider, child) {
         return Positioned(
           bottom: 30,
-          left: 0,
-          right: 0,
+          left: 20,
+          right: 20,
           child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-              decoration: BoxDecoration(
-                color: provider.isDarkMode
-                    ? Colors.black.withOpacity(0.98)
-                    : Colors.white.withOpacity(0.98),
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 40,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _ToolButton(
-                    icon: '✏️',
-                    isActive: provider.mode == DrawingMode.pen,
-                    onTap: () => provider.setMode(DrawingMode.pen),
-                    isDarkMode: provider.isDarkMode,
-                  ),
-                  const SizedBox(width: 12),
-                  _ToolButton(
-                    icon: '🧹',
-                    isActive: provider.mode == DrawingMode.eraser,
-                    onTap: () => provider.setMode(DrawingMode.eraser),
-                    isDarkMode: provider.isDarkMode,
-                  ),
-                  const SizedBox(width: 12),
-                  _ToolButton(
-                    icon: '⬚',
-                    isActive: provider.mode == DrawingMode.select,
-                    onTap: () => provider.setMode(DrawingMode.select),
-                    isDarkMode: provider.isDarkMode,
-                    label: '선택',
-                  ),
-                  const SizedBox(width: 12),
-                  _ToolButton(
-                    icon: '⬡',
-                    isActive: provider.mode == DrawingMode.shape,
-                    onTap: () => provider.setMode(DrawingMode.shape),
-                    isDarkMode: provider.isDarkMode,
-                    label: '도형',
-                  ),
-                  const SizedBox(width: 12),
-                  _ToolButton(
-                    icon: '⌨',
-                    isActive: provider.mode == DrawingMode.text,
-                    onTap: () => provider.setMode(DrawingMode.text),
-                    isDarkMode: provider.isDarkMode,
-                    label: '텍스트',
-                  ),
-
-                  // Auto-shape toggle (only show when pen mode)
-                  if (provider.mode == DrawingMode.pen) ...[
-                    const SizedBox(width: 12),
-                    _ToolButton(
-                      icon: '✨',
-                      isActive: provider.autoShapeEnabled,
-                      onTap: () => provider.toggleAutoShape(),
-                      isDarkMode: provider.isDarkMode,
-                      label: '자동',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(30),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: provider.isDarkMode
+                          ? [
+                              Colors.black.withOpacity(0.7),
+                              Colors.black.withOpacity(0.5),
+                            ]
+                          : [
+                              Colors.white.withOpacity(0.7),
+                              Colors.white.withOpacity(0.5),
+                            ],
                     ),
-                  ],
-
-                  const SizedBox(width: 15),
-                  _Divider(isDarkMode: provider.isDarkMode),
-                  const SizedBox(width: 15),
-
-                  // Shape conversion button (only show when selection exists)
-                  if (provider.selectionRect != null) ...[
-                    _OCRButton(
-                      icon: Icons.auto_fix_high,
-                      label: '도형변환',
-                      onTap: () => provider.convertSelectionToShapes(),
-                      isDarkMode: provider.isDarkMode,
-                      isLoading: false,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: provider.isDarkMode
+                          ? Colors.white.withOpacity(0.1)
+                          : Colors.black.withOpacity(0.1),
+                      width: 1.5,
                     ),
-                    const SizedBox(width: 12),
-                  ],
-
-                  // OCR buttons (only show when selection exists)
-                  if (provider.selectionRect != null) ...[
-                    _OCRButton(
-                      icon: Icons.text_fields,
-                      label: '텍스트',
-                      onTap: () => _recognizeText(context, provider),
-                      isDarkMode: provider.isDarkMode,
-                      isLoading: provider.isProcessingOCR,
-                    ),
-                    const SizedBox(width: 12),
-                    _OCRButton(
-                      icon: Icons.calculate,
-                      label: '수식',
-                      onTap: () => _recognizeMath(context, provider),
-                      isDarkMode: provider.isDarkMode,
-                      isLoading: provider.isProcessingOCR,
-                    ),
-                    const SizedBox(width: 12),
-                    _OCRButton(
-                      icon: Icons.auto_awesome,
-                      label: '글씨→LaTeX',
-                      onTap: () => _convertToLatex(context, provider),
-                      isDarkMode: provider.isDarkMode,
-                      isLoading: provider.isProcessingOCR,
-                      color: const Color(0xFFFF9500), // Orange color
-                    ),
-                    const SizedBox(width: 15),
-                    _Divider(isDarkMode: provider.isDarkMode),
-                    const SizedBox(width: 15),
-                  ],
-
-                  // Color palette (only show when pen mode)
-                  if (provider.mode == DrawingMode.pen) ...[
-                    ...presetColors.map((color) => Padding(
-                          padding: const EdgeInsets.only(right: 10),
-                          child: _ColorButton(
-                            color: color,
-                            isSelected: provider.currentColor == color,
-                            onTap: () => provider.setColor(color),
-                          ),
-                        )),
-                    _Divider(isDarkMode: provider.isDarkMode),
-                    const SizedBox(width: 15),
-                    GestureDetector(
-                      onTap: () => _showColorPicker(context, provider),
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: provider.currentColor,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 2,
-                          ),
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
                       ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Tool buttons
+                        _ModernToolButton(
+                          icon: Icons.edit,
+                          isActive: provider.mode == DrawingMode.pen,
+                          onTap: () => provider.setMode(DrawingMode.pen),
+                          isDarkMode: provider.isDarkMode,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernToolButton(
+                          icon: Icons.auto_fix_high_outlined,
+                          isActive: provider.mode == DrawingMode.eraser,
+                          onTap: () => provider.setMode(DrawingMode.eraser),
+                          isDarkMode: provider.isDarkMode,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernToolButton(
+                          icon: Icons.select_all,
+                          isActive: provider.mode == DrawingMode.select,
+                          onTap: () => provider.setMode(DrawingMode.select),
+                          isDarkMode: provider.isDarkMode,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernToolButton(
+                          icon: Icons.category_outlined,
+                          isActive: provider.mode == DrawingMode.shape,
+                          onTap: () => provider.setMode(DrawingMode.shape),
+                          isDarkMode: provider.isDarkMode,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernToolButton(
+                          icon: Icons.text_fields,
+                          isActive: provider.mode == DrawingMode.text,
+                          onTap: () => provider.setMode(DrawingMode.text),
+                          isDarkMode: provider.isDarkMode,
+                        ),
+
+                        // Auto-shape toggle (only show when pen mode)
+                        if (provider.mode == DrawingMode.pen) ...[
+                          const SizedBox(width: 8),
+                          _ModernToolButton(
+                            icon: Icons.auto_awesome,
+                            isActive: provider.autoShapeEnabled,
+                            onTap: () => provider.toggleAutoShape(),
+                            isDarkMode: provider.isDarkMode,
+                            isSmall: true,
+                          ),
+                        ],
+
+                        // Divider
+                        if (provider.selectionRect != null || provider.mode == DrawingMode.pen) ...[
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 1,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: provider.isDarkMode
+                                    ? [
+                                        Colors.white.withOpacity(0),
+                                        Colors.white.withOpacity(0.2),
+                                        Colors.white.withOpacity(0),
+                                      ]
+                                    : [
+                                        Colors.black.withOpacity(0),
+                                        Colors.black.withOpacity(0.2),
+                                        Colors.black.withOpacity(0),
+                                      ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+
+                        // Shape conversion & OCR buttons (only show when selection exists)
+                        if (provider.selectionRect != null) ...[
+                          _ModernActionButton(
+                            icon: Icons.auto_fix_high,
+                            label: '도형',
+                            onTap: () => provider.convertSelectionToShapes(),
+                            color: const Color(0xFF5E5CE6),
+                            isDarkMode: provider.isDarkMode,
+                            isLoading: false,
+                          ),
+                          const SizedBox(width: 8),
+                          _ModernActionButton(
+                            icon: Icons.text_snippet,
+                            label: '텍스트',
+                            onTap: () => _recognizeText(context, provider),
+                            color: const Color(0xFF34C759),
+                            isDarkMode: provider.isDarkMode,
+                            isLoading: provider.isProcessingOCR,
+                          ),
+                          const SizedBox(width: 8),
+                          _ModernActionButton(
+                            icon: Icons.functions,
+                            label: '수식',
+                            onTap: () => _recognizeMath(context, provider),
+                            color: const Color(0xFF007AFF),
+                            isDarkMode: provider.isDarkMode,
+                            isLoading: provider.isProcessingOCR,
+                          ),
+                          const SizedBox(width: 8),
+                          _ModernActionButton(
+                            icon: Icons.auto_awesome,
+                            label: 'LaTeX',
+                            onTap: () => _convertToLatex(context, provider),
+                            color: const Color(0xFFFF9500),
+                            isDarkMode: provider.isDarkMode,
+                            isLoading: provider.isProcessingOCR,
+                          ),
+                        ],
+
+                        // Color palette (only show when pen mode)
+                        if (provider.mode == DrawingMode.pen && provider.selectionRect == null) ...[
+                          ...presetColors.map((color) => Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: _ModernColorButton(
+                                  color: color,
+                                  isSelected: provider.currentColor == color,
+                                  onTap: () => provider.setColor(color),
+                                  isDarkMode: provider.isDarkMode,
+                                ),
+                              )),
+                        ],
+                      ],
                     ),
-                  ],
-                ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -212,175 +239,145 @@ class FloatingToolbar extends StatelessWidget {
     await provider.convertSelectionToLatex(repaintBoundaryKey);
 
     if (context.mounted) {
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('손글씨가 LaTeX로 변환되어 캔버스에 추가되었습니다'),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.check_circle, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  '손글씨가 LaTeX로 변환되었습니다',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
             ],
           ),
           backgroundColor: const Color(0xFF34C759),
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
+          margin: const EdgeInsets.all(20),
         ),
       );
     }
   }
-
-  void _showColorPicker(BuildContext context, DrawingProvider provider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('색상 선택'),
-        content: SingleChildScrollView(
-          child: Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: List.generate(
-              20,
-              (index) {
-                final color = HSLColor.fromAHSL(
-                  1.0,
-                  (index * 360 / 20),
-                  0.7,
-                  0.5,
-                ).toColor();
-                return GestureDetector(
-                  onTap: () {
-                    provider.setColor(color);
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: color,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey, width: 2),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
-class _ToolButton extends StatelessWidget {
-  final String icon;
+class _ModernToolButton extends StatelessWidget {
+  final IconData icon;
   final bool isActive;
   final VoidCallback onTap;
   final bool isDarkMode;
-  final String? label;
+  final bool isSmall;
 
-  const _ToolButton({
+  const _ModernToolButton({
     required this.icon,
     required this.isActive,
     required this.onTap,
     required this.isDarkMode,
-    this.label,
+    this.isSmall = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final size = isSmall ? 40.0 : 48.0;
+    final iconSize = isSmall ? 20.0 : 24.0;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        width: label != null ? null : 50,
-        height: 50,
-        padding: label != null ? const EdgeInsets.symmetric(horizontal: 12) : null,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           gradient: isActive
               ? const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                   colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                 )
               : null,
           color: isActive
               ? null
-              : (isDarkMode ? const Color(0xFF3A3A3A) : const Color(0xFFF5F5F5)),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: isActive ? const Color(0xFF667EEA) : Colors.transparent,
-            width: 2,
-          ),
+              : (isDarkMode ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05)),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: isActive
               ? [
                   BoxShadow(
                     color: const Color(0xFF667EEA).withOpacity(0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 5),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ]
               : [],
         ),
-        child: Center(
-          child: label != null
-              ? Row(
-                  children: [
-                    Text(icon, style: const TextStyle(fontSize: 20)),
-                    const SizedBox(width: 4),
-                    Text(
-                      label!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isActive ? Colors.white : (isDarkMode ? Colors.white : Colors.black),
-                      ),
-                    ),
-                  ],
-                )
-              : Text(icon, style: const TextStyle(fontSize: 24)),
+        child: Icon(
+          icon,
+          size: iconSize,
+          color: isActive
+              ? Colors.white
+              : (isDarkMode ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.7)),
         ),
       ),
     );
   }
 }
 
-class _OCRButton extends StatelessWidget {
+class _ModernActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color color;
   final bool isDarkMode;
   final bool isLoading;
-  final Color color;
 
-  const _OCRButton({
+  const _ModernActionButton({
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.color,
     required this.isDarkMode,
     required this.isLoading,
-    this.color = const Color(0xFF34C759),
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: isLoading ? null : onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              color,
+              color.withOpacity(0.8),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
               color: color.withOpacity(0.3),
               blurRadius: 8,
-              offset: const Offset(0, 2),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             if (isLoading)
               const SizedBox(
@@ -392,14 +389,15 @@ class _OCRButton extends StatelessWidget {
                 ),
               )
             else
-              Icon(icon, color: Colors.white, size: 20),
+              Icon(icon, color: Colors.white, size: 18),
             const SizedBox(width: 6),
             Text(
               label,
               style: const TextStyle(
                 color: Colors.white,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -409,15 +407,17 @@ class _OCRButton extends StatelessWidget {
   }
 }
 
-class _ColorButton extends StatelessWidget {
+class _ModernColorButton extends StatelessWidget {
   final Color color;
   final bool isSelected;
   final VoidCallback onTap;
+  final bool isDarkMode;
 
-  const _ColorButton({
+  const _ModernColorButton({
     required this.color,
     required this.isSelected,
     required this.onTap,
+    required this.isDarkMode,
   });
 
   @override
@@ -425,20 +425,21 @@ class _ColorButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        width: 44,
-        height: 44,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF667EEA) : Colors.transparent,
+            color: isSelected ? Colors.white : Colors.transparent,
             width: 3,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF667EEA).withOpacity(0.4),
+                    color: color.withOpacity(0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -446,27 +447,15 @@ class _ColorButton extends StatelessWidget {
               : [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
+                    blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
                 ],
         ),
+        child: isSelected
+            ? const Icon(Icons.check, color: Colors.white, size: 20)
+            : null,
       ),
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  final bool isDarkMode;
-
-  const _Divider({required this.isDarkMode});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 30,
-      color: isDarkMode ? const Color(0xFF404040) : const Color(0xFFE0E0E0),
     );
   }
 }

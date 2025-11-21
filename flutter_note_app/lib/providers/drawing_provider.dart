@@ -266,6 +266,46 @@ class DrawingProvider extends ChangeNotifier {
           case ShapeType2D.star:
             shapePoints = _shapeDrawingService.drawStar(_shapeStartPoint!, _shapeSize / 2);
             break;
+          case ShapeType2D.parallelogram:
+            shapePoints = _shapeDrawingService.drawParallelogram(_shapeStartPoint!, _shapeSize, _shapeSize * 0.6);
+            break;
+          case ShapeType2D.rhombus:
+            shapePoints = _shapeDrawingService.drawRhombus(_shapeStartPoint!, _shapeSize);
+            break;
+          case ShapeType2D.trapezoid:
+            shapePoints = _shapeDrawingService.drawTrapezoid(_shapeStartPoint!, _shapeSize * 0.6, _shapeSize, _shapeSize * 0.6);
+            break;
+          case ShapeType2D.ellipse:
+            shapePoints = _shapeDrawingService.drawEllipse(_shapeStartPoint!, _shapeSize / 2, _shapeSize / 3);
+            break;
+          case ShapeType2D.sector:
+            shapePoints = _shapeDrawingService.drawSector(_shapeStartPoint!, _shapeSize / 2);
+            break;
+          case ShapeType2D.arc:
+            shapePoints = _shapeDrawingService.drawArc(_shapeStartPoint!, _shapeSize / 2);
+            break;
+          case ShapeType2D.rightAngle:
+            shapePoints = _shapeDrawingService.drawRightAngle(_shapeStartPoint!, _shapeSize);
+            break;
+          case ShapeType2D.tangent:
+            final touchPoint = Offset(_shapeStartPoint!.dx + _shapeSize / 2, _shapeStartPoint!.dy);
+            shapePoints = _shapeDrawingService.drawTangent(_shapeStartPoint!, _shapeSize / 3, touchPoint);
+            break;
+          case ShapeType2D.chord:
+            shapePoints = _shapeDrawingService.drawChord(_shapeStartPoint!, _shapeSize / 2);
+            break;
+          case ShapeType2D.heptagon:
+            shapePoints = _shapeDrawingService.drawHeptagon(_shapeStartPoint!, _shapeSize / 2);
+            break;
+          case ShapeType2D.octagon:
+            shapePoints = _shapeDrawingService.drawOctagon(_shapeStartPoint!, _shapeSize / 2);
+            break;
+          case ShapeType2D.nonagon:
+            shapePoints = _shapeDrawingService.drawNonagon(_shapeStartPoint!, _shapeSize / 2);
+            break;
+          case ShapeType2D.decagon:
+            shapePoints = _shapeDrawingService.drawDecagon(_shapeStartPoint!, _shapeSize / 2);
+            break;
         }
       }
 
@@ -388,6 +428,33 @@ class DrawingProvider extends ChangeNotifier {
           return _shapeDrawingService.drawHexagon(_shapeStartPoint!, _shapeSize / 2);
         case ShapeType2D.star:
           return _shapeDrawingService.drawStar(_shapeStartPoint!, _shapeSize / 2);
+        case ShapeType2D.parallelogram:
+          return _shapeDrawingService.drawParallelogram(_shapeStartPoint!, _shapeSize, _shapeSize * 0.6);
+        case ShapeType2D.rhombus:
+          return _shapeDrawingService.drawRhombus(_shapeStartPoint!, _shapeSize);
+        case ShapeType2D.trapezoid:
+          return _shapeDrawingService.drawTrapezoid(_shapeStartPoint!, _shapeSize * 0.6, _shapeSize, _shapeSize * 0.6);
+        case ShapeType2D.ellipse:
+          return _shapeDrawingService.drawEllipse(_shapeStartPoint!, _shapeSize / 2, _shapeSize / 3);
+        case ShapeType2D.sector:
+          return _shapeDrawingService.drawSector(_shapeStartPoint!, _shapeSize / 2);
+        case ShapeType2D.arc:
+          return _shapeDrawingService.drawArc(_shapeStartPoint!, _shapeSize / 2);
+        case ShapeType2D.rightAngle:
+          return _shapeDrawingService.drawRightAngle(_shapeStartPoint!, _shapeSize);
+        case ShapeType2D.tangent:
+          final touchPoint = Offset(_shapeStartPoint!.dx + _shapeSize / 2, _shapeStartPoint!.dy);
+          return _shapeDrawingService.drawTangent(_shapeStartPoint!, _shapeSize / 3, touchPoint);
+        case ShapeType2D.chord:
+          return _shapeDrawingService.drawChord(_shapeStartPoint!, _shapeSize / 2);
+        case ShapeType2D.heptagon:
+          return _shapeDrawingService.drawHeptagon(_shapeStartPoint!, _shapeSize / 2);
+        case ShapeType2D.octagon:
+          return _shapeDrawingService.drawOctagon(_shapeStartPoint!, _shapeSize / 2);
+        case ShapeType2D.nonagon:
+          return _shapeDrawingService.drawNonagon(_shapeStartPoint!, _shapeSize / 2);
+        case ShapeType2D.decagon:
+          return _shapeDrawingService.drawDecagon(_shapeStartPoint!, _shapeSize / 2);
       }
     }
     return [];

@@ -149,15 +149,37 @@ class _ShapePaletteState extends State<ShapePalette> {
 
   List<Widget> _build2DShapes(DrawingProvider provider) {
     final shapes = [
+      // Basic shapes
       ShapeInfo(ShapeType2D.circle, '●', '원'),
-      ShapeInfo(ShapeType2D.rectangle, '▬', '직사각형'),
+      ShapeInfo(ShapeType2D.ellipse, '◯', '타원'),
       ShapeInfo(ShapeType2D.square, '■', '정사각형'),
+      ShapeInfo(ShapeType2D.rectangle, '▭', '직사각형'),
       ShapeInfo(ShapeType2D.triangle, '▲', '삼각형'),
       ShapeInfo(ShapeType2D.line, '─', '선'),
       ShapeInfo(ShapeType2D.arrow, '→', '화살표'),
+
+      // Quadrilaterals
+      ShapeInfo(ShapeType2D.parallelogram, '▱', '평행사변형'),
+      ShapeInfo(ShapeType2D.rhombus, '◇', '마름모'),
+      ShapeInfo(ShapeType2D.trapezoid, '⏢', '사다리꼴'),
+
+      // Regular polygons
       ShapeInfo(ShapeType2D.pentagon, '⬟', '오각형'),
       ShapeInfo(ShapeType2D.hexagon, '⬡', '육각형'),
+      ShapeInfo(ShapeType2D.heptagon, '⭘', '칠각형'),
+      ShapeInfo(ShapeType2D.octagon, '⯃', '팔각형'),
+      ShapeInfo(ShapeType2D.nonagon, '◯', '구각형'),
+      ShapeInfo(ShapeType2D.decagon, '◯', '십각형'),
+
+      // Circle-related
+      ShapeInfo(ShapeType2D.sector, '◔', '부채꼴'),
+      ShapeInfo(ShapeType2D.arc, '◠', '호'),
+      ShapeInfo(ShapeType2D.chord, '⌒', '현'),
+      ShapeInfo(ShapeType2D.tangent, '⊥', '접선'),
+
+      // Others
       ShapeInfo(ShapeType2D.star, '★', '별'),
+      ShapeInfo(ShapeType2D.rightAngle, '∟', '직각'),
     ];
 
     return [
@@ -168,7 +190,7 @@ class _ShapePaletteState extends State<ShapePalette> {
           crossAxisCount: 3,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 1,
+          childAspectRatio: 0.95,
         ),
         itemCount: shapes.length,
         itemBuilder: (context, index) {
