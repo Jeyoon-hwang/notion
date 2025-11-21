@@ -127,6 +127,16 @@ class FloatingToolbar extends StatelessWidget {
                           ),
                           SizedBox(width: spacing),
                         ],
+                        // Wrong Answer Clip tool (가위 아이콘)
+                        _ModernToolButton(
+                          icon: Icons.content_cut,
+                          isActive: provider.mode == DrawingMode.wrongAnswerClip,
+                          onTap: () => provider.setMode(DrawingMode.wrongAnswerClip),
+                          isDarkMode: provider.isDarkMode,
+                          size: buttonSize,
+                          iconSize: iconSize,
+                        ),
+                        SizedBox(width: spacing),
                         if (provider.settings.showShapeTool) ...[
                           _ModernToolButton(
                             icon: Icons.category_outlined,

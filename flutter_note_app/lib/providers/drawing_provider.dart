@@ -16,8 +16,9 @@ import '../services/shape_drawing_service.dart';
 import '../services/audio_recording_service.dart';
 import '../services/note_service.dart';
 import '../services/version_manager.dart';
+import '../services/wrong_answer_service.dart';
 
-enum DrawingMode { pen, eraser, select, shape, text }
+enum DrawingMode { pen, eraser, select, shape, text, wrongAnswerClip }
 
 class DrawingProvider extends ChangeNotifier {
   // Layer system
@@ -79,6 +80,10 @@ class DrawingProvider extends ChangeNotifier {
   // Version control management (Git-like system)
   final VersionManager _versionManager = VersionManager();
   VersionManager get versionManager => _versionManager;
+
+  // Wrong answer clipping service
+  final WrongAnswerService _wrongAnswerService = WrongAnswerService();
+  WrongAnswerService get wrongAnswerService => _wrongAnswerService;
 
   // Shape drawing
   ShapeType2D _selectedShape2D = ShapeType2D.circle;
@@ -190,6 +195,7 @@ class DrawingProvider extends ChangeNotifier {
   DrawingMode get mode => _mode;
   bool get isEraser => _mode == DrawingMode.eraser;
   bool get isSelectMode => _mode == DrawingMode.select;
+  bool get isWrongAnswerClipMode => _mode == DrawingMode.wrongAnswerClip;
   bool get isDarkMode => _isDarkMode;
   bool get autoShapeEnabled => _autoShapeEnabled;
   bool get canUndo => _historyManager.canUndo;
@@ -454,7 +460,7 @@ class DrawingProvider extends ChangeNotifier {
     // Auto-add pages if drawing beyond current pages
     _pageManager.autoAddPagesForPoint(offset);
 
-    if (_mode == DrawingMode.select) {
+    if (_mode == DrawingMode.select || _mode == DrawingMode.wrongAnswerClip) {
       _selectionStart = offset;
       _isSelecting = true;
       _selectionRect = null;
@@ -488,7 +494,8 @@ class DrawingProvider extends ChangeNotifier {
   }
 
   void updateDrawing(Offset offset, double pressure) {
-    if (_mode == DrawingMode.select && _isSelecting && _selectionStart != null) {
+    if ((_mode == DrawingMode.select || _mode == DrawingMode.wrongAnswerClip) &&
+        _isSelecting && _selectionStart != null) {
       _selectionRect = Rect.fromPoints(_selectionStart!, offset);
       notifyListeners();
       return;
@@ -506,8 +513,10 @@ class DrawingProvider extends ChangeNotifier {
   }
 
   void endDrawing() {
-    if (_mode == DrawingMode.select) {
+    if (_mode == DrawingMode.select || _mode == DrawingMode.wrongAnswerClip) {
       _isSelecting = false;
+      // For wrongAnswerClip mode, keep the selection rect visible
+      // UI will show popup dialog to complete clipping
       notifyListeners();
       return;
     }

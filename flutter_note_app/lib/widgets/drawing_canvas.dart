@@ -11,6 +11,7 @@ import '../models/page_layout.dart';
 import '../widgets/text_input_dialog.dart';
 import '../services/template_renderer.dart';
 import '../services/hybrid_input_detector.dart';
+import '../widgets/wrong_answer_clip_dialog.dart';
 
 /// Intelligently inverts colors for dark mode (text version)
 Color _invertColorForText(Color color) {
@@ -42,6 +43,7 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   Offset? _twoFingerStartPosition;
   int _pointerCount = 0;
   HybridInputDetector? _hybridDetector;
+  bool _clipDialogShown = false;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +60,33 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
               builder: (context) => const TextInputDialog(),
             );
           });
+        }
+
+        // Show wrong answer clip dialog when selection is complete in clip mode
+        if (provider.isWrongAnswerClipMode &&
+            provider.selectionRect != null &&
+            !_clipDialogShown) {
+          _clipDialogShown = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => WrongAnswerClipDialog(
+                selectionBounds: provider.selectionRect!,
+                repaintBoundaryKey: widget.repaintBoundaryKey,
+              ),
+            ).then((_) {
+              // Reset flag when dialog is closed
+              setState(() {
+                _clipDialogShown = false;
+              });
+            });
+          });
+        }
+
+        // Reset clip dialog flag when mode changes or selection is cleared
+        if (!provider.isWrongAnswerClipMode || provider.selectionRect == null) {
+          _clipDialogShown = false;
         }
 
         return Stack(
