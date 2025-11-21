@@ -49,12 +49,12 @@ workflows:
         script: |
           cd flutter_note_app
           flutter packages pub get
-      - name: Flutter build iOS (no signing)
+      - name: Flutter build iOS (simulator)
         script: |
           cd flutter_note_app
-          flutter build ios --release --no-codesign
+          flutter build ios --release --simulator
     artifacts:
-      - flutter_note_app/build/ios/iphoneos/*.app
+      - flutter_note_app/build/ios/iphonesimulator/*.app
       - flutter_note_app/flutter_drive.log
     publishing:
       email:
