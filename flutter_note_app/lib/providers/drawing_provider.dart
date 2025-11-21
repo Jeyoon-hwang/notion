@@ -39,6 +39,9 @@ class DrawingProvider extends ChangeNotifier {
   bool _autoShapeEnabled = false;
   bool _focusMode = false; // 포커스 모드
 
+  // Recent colors (최근 사용한 색상, 최대 8개)
+  final List<Color> _recentColors = [];
+
   // Text input
   Offset? _textInputPosition;
   TextObject? _selectedTextObject;
@@ -121,10 +124,21 @@ class DrawingProvider extends ChangeNotifier {
   Offset? get textInputPosition => _textInputPosition;
   TextObject? get selectedTextObject => _selectedTextObject;
   bool get palmRejection => _settings.palmRejection;
+  List<Color> get recentColors => _recentColors;
 
   // Setters
   void setColor(Color color) {
     _currentColor = color;
+
+    // Add to recent colors
+    _recentColors.remove(color); // Remove if already exists
+    _recentColors.insert(0, color); // Add to front
+
+    // Keep only 8 most recent colors
+    if (_recentColors.length > 8) {
+      _recentColors.removeLast();
+    }
+
     notifyListeners();
   }
 

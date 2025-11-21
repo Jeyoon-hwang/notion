@@ -232,6 +232,83 @@ class FloatingToolbar extends StatelessWidget {
                           ),
                         ],
 
+                        // Recent colors (only show when pen mode and has recent colors)
+                        if (provider.mode == DrawingMode.pen &&
+                            provider.selectionRect == null &&
+                            provider.recentColors.isNotEmpty) ...[
+                          // Divider before recent colors
+                          Container(
+                            width: 1,
+                            height: isTablet ? 36 : 30,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: provider.isDarkMode
+                                    ? [
+                                        Colors.white.withOpacity(0),
+                                        Colors.white.withOpacity(0.2),
+                                        Colors.white.withOpacity(0),
+                                      ]
+                                    : [
+                                        Colors.black.withOpacity(0),
+                                        Colors.black.withOpacity(0.2),
+                                        Colors.black.withOpacity(0),
+                                      ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: spacing * 1.5),
+
+                          // Recent colors label
+                          Text(
+                            '최근',
+                            style: TextStyle(
+                              fontSize: isTablet ? 13 : 11,
+                              fontWeight: FontWeight.w600,
+                              color: provider.isDarkMode
+                                  ? Colors.white.withOpacity(0.7)
+                                  : Colors.black.withOpacity(0.7),
+                            ),
+                          ),
+                          SizedBox(width: spacing),
+
+                          ...provider.recentColors.map((color) => Padding(
+                                padding: EdgeInsets.only(right: spacing),
+                                child: _ModernColorButton(
+                                  color: color,
+                                  isSelected: provider.currentColor == color,
+                                  onTap: () => provider.setColor(color),
+                                  isDarkMode: provider.isDarkMode,
+                                  size: colorButtonSize * 0.9, // Slightly smaller
+                                ),
+                              )),
+
+                          // Divider after recent colors
+                          Container(
+                            width: 1,
+                            height: isTablet ? 36 : 30,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: provider.isDarkMode
+                                    ? [
+                                        Colors.white.withOpacity(0),
+                                        Colors.white.withOpacity(0.2),
+                                        Colors.white.withOpacity(0),
+                                      ]
+                                    : [
+                                        Colors.black.withOpacity(0),
+                                        Colors.black.withOpacity(0.2),
+                                        Colors.black.withOpacity(0),
+                                      ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: spacing * 1.5),
+                        ],
+
                         // Color palette (only show when pen mode)
                         if (provider.mode == DrawingMode.pen && provider.selectionRect == null) ...[
                           ...presetColors.map((color) => Padding(
