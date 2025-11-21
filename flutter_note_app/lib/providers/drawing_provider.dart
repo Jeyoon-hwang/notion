@@ -17,6 +17,9 @@ import '../services/audio_recording_service.dart';
 import '../services/note_service.dart';
 import '../services/version_manager.dart';
 import '../services/wrong_answer_service.dart';
+import '../models/practice_session.dart';
+import '../models/planner.dart';
+import '../models/lecture_mode.dart';
 
 enum DrawingMode { pen, eraser, select, shape, text, wrongAnswerClip }
 
@@ -84,6 +87,21 @@ class DrawingProvider extends ChangeNotifier {
   // Wrong answer clipping service
   final WrongAnswerService _wrongAnswerService = WrongAnswerService();
   WrongAnswerService get wrongAnswerService => _wrongAnswerService;
+
+  // Practice session manager (N회독)
+  final PracticeSessionManager _practiceSessionManager = PracticeSessionManager();
+  PracticeSessionManager get practiceSessionManager => _practiceSessionManager;
+  PracticeViewMode _practiceViewMode = PracticeViewMode.current;
+  PracticeViewMode get practiceViewMode => _practiceViewMode;
+  // Planner manager
+  final PlannerManager _plannerManager = PlannerManager();
+  PlannerManager get plannerManager => _plannerManager;
+
+  // Lecture mode (split view optimization)
+  bool _isLectureMode = false;
+  final List<LectureScreenshot> _lectureScreenshots = [];
+  bool get isLectureMode => _isLectureMode;
+  List<LectureScreenshot> get lectureScreenshots => List.unmodifiable(_lectureScreenshots);
 
   // Shape drawing
   ShapeType2D _selectedShape2D = ShapeType2D.circle;
