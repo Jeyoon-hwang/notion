@@ -5,12 +5,14 @@ import '../models/drawing_stroke.dart';
 import '../models/text_object.dart';
 import '../models/app_settings.dart';
 import '../models/layer.dart';
+import '../models/note.dart';
 import 'dart:typed_data';
 import 'package:gal/gal.dart';
 import '../services/ocr_service.dart';
 import '../services/shape_recognition_service.dart';
 import '../services/shape_drawing_service.dart';
 import '../services/audio_recording_service.dart';
+import '../services/note_service.dart';
 
 enum DrawingMode { pen, eraser, select, shape, text }
 
@@ -63,6 +65,10 @@ class DrawingProvider extends ChangeNotifier {
   bool get isRecordingAudio => _audioService.isRecording;
   bool get isPlayingAudio => _audioService.isPlaying;
 
+  // Note service for quick capture and auto-save
+  final NoteService _noteService = NoteService();
+  NoteService get noteService => _noteService;
+
   // Shape drawing
   ShapeType2D _selectedShape2D = ShapeType2D.circle;
   ShapeType3D? _selectedShape3D;
@@ -72,9 +78,69 @@ class DrawingProvider extends ChangeNotifier {
   double _triangleAngle3 = 60.0;
   Offset? _shapeStartPoint;
 
-  // Constructor - Initialize default layers
+  // Constructor - Initialize default layers and load notes
   DrawingProvider() {
     _initializeLayers();
+    _initializeNoteService();
+  }
+
+  Future<void> _initializeNoteService() async {
+    await _noteService.loadNotesFromDisk();
+
+    // If no notes exist or no current note, create a quick note
+    if (_noteService.currentNote == null) {
+      createQuickNote();
+    } else {
+      // Load current note's layers and data
+      _loadNoteData(_noteService.currentNote!);
+    }
+  }
+
+  /// Create a quick note for instant capture
+  void createQuickNote({NoteTemplate template = NoteTemplate.blank}) {
+    final note = _noteService.createQuickNote(
+      template: template,
+      backgroundColor: _isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+    );
+    _loadNoteData(note);
+  }
+
+  /// Load note data into drawing provider
+  void _loadNoteData(Note note) {
+    // Clear current state
+    _layers.clear();
+    _textObjects.clear();
+    _strokes.clear();
+
+    // Load layers from note
+    if (note.layers.isNotEmpty) {
+      _layers.addAll(note.layers);
+    } else {
+      _initializeLayers();
+    }
+
+    // Load text objects from note
+    _textObjects.addAll(note.textObjects);
+
+    // Set background color
+    // Note: You might want to expose backgroundColor setter
+
+    // Load template
+    // Template rendering would be implemented separately
+
+    notifyListeners();
+  }
+
+  /// Save current state to current note
+  void _saveToCurrentNote() {
+    if (_noteService.currentNote == null) return;
+
+    // Update the note's layers with current state
+    final currentNote = _noteService.currentNote!;
+
+    // Copy all strokes to note's layers (they're already in layers)
+    // The layers are already being modified in place, so just mark as modified
+    _noteService.markCurrentNoteAsModified();
   }
 
   void _initializeLayers() {
@@ -535,6 +601,9 @@ class DrawingProvider extends ChangeNotifier {
       }
       _saveState();
       _currentStroke.clear();
+
+      // Auto-save to current note
+      _saveToCurrentNote();
     }
     notifyListeners();
   }
@@ -825,6 +894,10 @@ class DrawingProvider extends ChangeNotifier {
 
     _textObjects.add(textObj);
     _textInputPosition = null;
+
+    // Auto-save to current note
+    _saveToCurrentNote();
+
     notifyListeners();
   }
 
@@ -937,10 +1010,39 @@ class DrawingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Switch to a different note
+  void switchToNote(String noteId) {
+    _noteService.switchToNote(noteId);
+    if (_noteService.currentNote != null) {
+      _loadNoteData(_noteService.currentNote!);
+    }
+  }
+
+  /// Update current note's template
+  void updateNoteTemplate(NoteTemplate template) {
+    _noteService.updateCurrentNote(template: template);
+    notifyListeners();
+  }
+
+  /// Update current note's title
+  void updateNoteTitle(String title) {
+    if (_noteService.currentNote == null) return;
+    _noteService.updateNoteTitle(_noteService.currentNote!.id, title);
+    notifyListeners();
+  }
+
+  /// Add tags to current note
+  void addTagsToCurrentNote(List<String> tags) {
+    if (_noteService.currentNote == null) return;
+    _noteService.addTagsToNote(_noteService.currentNote!.id, tags);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _ocrService.dispose();
     _audioService.dispose();
+    _noteService.dispose();
     super.dispose();
   }
 }

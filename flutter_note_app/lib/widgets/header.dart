@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
 import '../screens/settings_screen.dart';
+import '../screens/notes_list_screen.dart';
 
 class AppHeader extends StatelessWidget {
   final GlobalKey repaintBoundaryKey;
@@ -108,6 +109,25 @@ class AppHeader extends StatelessWidget {
                     ),
                     Row(
                       children: [
+                        _QuickNoteButton(
+                          onTap: () => provider.createQuickNote(),
+                          isDarkMode: provider.isDarkMode,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernIconButton(
+                          icon: Icons.folder_outlined,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const NotesListScreen(),
+                              ),
+                            );
+                          },
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: true,
+                        ),
+                        const SizedBox(width: 12),
                         _ModernIconButton(
                           icon: Icons.undo_rounded,
                           onTap: provider.canUndo ? provider.undo : null,
@@ -264,6 +284,59 @@ class AppHeader extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuickNoteButton extends StatelessWidget {
+  final VoidCallback onTap;
+  final bool isDarkMode;
+
+  const _QuickNoteButton({
+    required this.onTap,
+    required this.isDarkMode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF667EEA).withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(
+              Icons.add_circle_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+            SizedBox(width: 6),
+            Text(
+              '빠른 노트',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -0.3,
               ),
             ),
           ],

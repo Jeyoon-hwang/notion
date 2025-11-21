@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
 import '../utils/responsive_util.dart';
 import './ocr_result_dialog.dart';
+import './template_picker.dart';
 
 class FloatingToolbar extends StatelessWidget {
   final GlobalKey repaintBoundaryKey;
@@ -321,6 +322,34 @@ class FloatingToolbar extends StatelessWidget {
                                   size: colorButtonSize,
                                 ),
                               )),
+                        ],
+
+                        // Template picker button (show for all modes except select with rect)
+                        if (provider.selectionRect == null) ...[
+                          // Divider before template picker
+                          Container(
+                            width: 1,
+                            height: isTablet ? 36 : 30,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: provider.isDarkMode
+                                    ? [
+                                        Colors.white.withOpacity(0),
+                                        Colors.white.withOpacity(0.2),
+                                        Colors.white.withOpacity(0),
+                                      ]
+                                    : [
+                                        Colors.black.withOpacity(0),
+                                        Colors.black.withOpacity(0.2),
+                                        Colors.black.withOpacity(0),
+                                      ],
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: spacing * 1.5),
+                          const TemplatePickerButton(),
                         ],
                       ],
                     ),

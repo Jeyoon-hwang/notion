@@ -6,7 +6,9 @@ import 'package:flutter_math_fork/flutter_math.dart';
 import '../providers/drawing_provider.dart';
 import '../models/drawing_stroke.dart';
 import '../models/text_object.dart';
+import '../models/note.dart';
 import '../widgets/text_input_dialog.dart';
+import '../services/template_renderer.dart';
 
 /// Intelligently inverts colors for dark mode (text version)
 Color _invertColorForText(Color color) {
@@ -149,6 +151,9 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                     isDarkMode: provider.isDarkMode,
                     shapePreview: provider.isShapeMode ? provider.getShapePreview() : [],
                     showGridLines: provider.settings.showGridLines,
+                    noteTemplate: provider.noteService.currentNote?.template ?? NoteTemplate.blank,
+                    backgroundColor: provider.noteService.currentNote?.backgroundColor ??
+                        (provider.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white),
                   ),
                   child: Container(
                     width: double.infinity,
@@ -231,6 +236,8 @@ class DrawingPainter extends CustomPainter {
   final bool isDarkMode;
   final List<DrawingPoint> shapePreview;
   final bool showGridLines;
+  final NoteTemplate noteTemplate;
+  final Color backgroundColor;
 
   DrawingPainter({
     required this.strokes,
@@ -242,11 +249,22 @@ class DrawingPainter extends CustomPainter {
     required this.isDarkMode,
     this.shapePreview = const [],
     this.showGridLines = false,
+    this.noteTemplate = NoteTemplate.blank,
+    required this.backgroundColor,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw grid lines if enabled
+    // Draw template background (lined, grid, dots, cornell, music)
+    TemplateRenderer.renderTemplate(
+      canvas,
+      size,
+      noteTemplate,
+      backgroundColor,
+      isDarkMode,
+    );
+
+    // Draw grid lines if enabled (override template)
     if (showGridLines) {
       _drawGridLines(canvas, size);
     }
