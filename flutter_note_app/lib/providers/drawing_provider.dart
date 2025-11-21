@@ -7,6 +7,7 @@ import '../models/app_settings.dart';
 import '../models/layer.dart';
 import '../models/note.dart';
 import '../models/history_action.dart';
+import '../models/page_layout.dart';
 import 'dart:typed_data';
 import 'package:gal/gal.dart';
 import '../services/ocr_service.dart';
@@ -69,6 +70,10 @@ class DrawingProvider extends ChangeNotifier {
   // Note service for quick capture and auto-save
   final NoteService _noteService = NoteService();
   NoteService get noteService => _noteService;
+
+  // Page layout management
+  final PageManager _pageManager = PageManager();
+  PageManager get pageManager => _pageManager;
 
   // Shape drawing
   ShapeType2D _selectedShape2D = ShapeType2D.circle;
@@ -376,6 +381,9 @@ class DrawingProvider extends ChangeNotifier {
     if (_settings.palmRejection && !isPen && _mode == DrawingMode.pen) {
       return;
     }
+
+    // Auto-add pages if drawing beyond current pages
+    _pageManager.autoAddPagesForPoint(offset);
 
     if (_mode == DrawingMode.select) {
       _selectionStart = offset;
@@ -1275,11 +1283,30 @@ class DrawingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Navigate to specific page
+  void goToPage(int pageIndex) {
+    _pageManager.goToPage(pageIndex);
+    notifyListeners();
+  }
+
+  /// Add a new page
+  void addNewPage() {
+    _pageManager.addPage();
+    notifyListeners();
+  }
+
+  /// Delete a page
+  void deletePage(int pageIndex) {
+    _pageManager.deletePage(pageIndex);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _ocrService.dispose();
     _audioService.dispose();
     _noteService.dispose();
+    _pageManager.dispose();
     super.dispose();
   }
 }

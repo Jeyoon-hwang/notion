@@ -7,6 +7,7 @@ import '../providers/drawing_provider.dart';
 import '../models/drawing_stroke.dart';
 import '../models/text_object.dart';
 import '../models/note.dart';
+import '../models/page_layout.dart';
 import '../widgets/text_input_dialog.dart';
 import '../services/template_renderer.dart';
 
@@ -154,6 +155,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                     noteTemplate: provider.noteService.currentNote?.template ?? NoteTemplate.blank,
                     backgroundColor: provider.noteService.currentNote?.backgroundColor ??
                         (provider.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white),
+                    pages: provider.pageManager.pages,
+                    currentPageIndex: provider.pageManager.currentPageIndex,
                   ),
                   child: Container(
                     width: double.infinity,
@@ -238,6 +241,8 @@ class DrawingPainter extends CustomPainter {
   final bool showGridLines;
   final NoteTemplate noteTemplate;
   final Color backgroundColor;
+  final List<NotePage> pages;
+  final int currentPageIndex;
 
   DrawingPainter({
     required this.strokes,
@@ -251,18 +256,41 @@ class DrawingPainter extends CustomPainter {
     this.showGridLines = false,
     this.noteTemplate = NoteTemplate.blank,
     required this.backgroundColor,
+    this.pages = const [],
+    this.currentPageIndex = 0,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw template background (lined, grid, dots, cornell, music)
-    TemplateRenderer.renderTemplate(
-      canvas,
-      size,
-      noteTemplate,
-      backgroundColor,
-      isDarkMode,
-    );
+    // Draw page boundaries if we have pages
+    if (pages.isNotEmpty) {
+      _drawPageBoundaries(canvas, size);
+
+      // Draw template on each page
+      for (final page in pages) {
+        canvas.save();
+        canvas.translate(0, page.yOffset);
+
+        TemplateRenderer.renderTemplate(
+          canvas,
+          page.dimensions,
+          noteTemplate,
+          backgroundColor,
+          isDarkMode,
+        );
+
+        canvas.restore();
+      }
+    } else {
+      // Fallback: draw template on entire canvas
+      TemplateRenderer.renderTemplate(
+        canvas,
+        size,
+        noteTemplate,
+        backgroundColor,
+        isDarkMode,
+      );
+    }
 
     // Draw grid lines if enabled (override template)
     if (showGridLines) {
@@ -297,6 +325,78 @@ class DrawingPainter extends CustomPainter {
       );
       _drawStroke(canvas, previewStroke);
     }
+  }
+
+  void _drawPageBoundaries(Canvas canvas, Size size) {
+    final pagePaint = Paint()
+      ..color = isDarkMode ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.1)
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.1)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+
+    final currentPageHighlightPaint = Paint()
+      ..color = isDarkMode
+          ? const Color(0xFF667EEA).withOpacity(0.1)
+          : const Color(0xFF667EEA).withOpacity(0.05)
+      ..style = PaintingStyle.fill;
+
+    for (int i = 0; i < pages.length; i++) {
+      final page = pages[i];
+      final bounds = page.bounds;
+
+      // Draw page shadow (behind page)
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          bounds.shift(const Offset(4, 4)),
+          const Radius.circular(8),
+        ),
+        shadowPaint,
+      );
+
+      // Highlight current page
+      if (i == currentPageIndex) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(bounds, const Radius.circular(8)),
+          currentPageHighlightPaint,
+        );
+      }
+
+      // Draw page boundary
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(bounds, const Radius.circular(8)),
+        pagePaint,
+      );
+
+      // Draw page number
+      _drawPageNumber(canvas, page, bounds);
+    }
+  }
+
+  void _drawPageNumber(Canvas canvas, NotePage page, Rect bounds) {
+    final textSpan = TextSpan(
+      text: '${page.pageNumber}',
+      style: TextStyle(
+        color: isDarkMode ? Colors.white38 : Colors.black26,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+    );
+
+    textPainter.layout();
+
+    // Draw at bottom center of page
+    final x = bounds.center.dx - textPainter.width / 2;
+    final y = bounds.bottom - textPainter.height - 12;
+
+    textPainter.paint(canvas, Offset(x, y));
   }
 
   void _drawStroke(Canvas canvas, DrawingStroke stroke) {
