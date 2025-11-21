@@ -17,6 +17,11 @@ class _ShapePaletteState extends State<ShapePalette> {
   Widget build(BuildContext context) {
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
+        // Hide in focus mode
+        if (provider.focusMode) {
+          return const SizedBox.shrink();
+        }
+
         if (!provider.isShapeMode) return const SizedBox.shrink();
 
         return Positioned(

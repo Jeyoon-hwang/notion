@@ -8,6 +8,22 @@ import '../models/drawing_stroke.dart';
 import '../models/text_object.dart';
 import '../widgets/text_input_dialog.dart';
 
+/// Intelligently inverts colors for dark mode (text version)
+Color _invertColorForText(Color color) {
+  final hslColor = HSLColor.fromColor(color);
+  final invertedLightness = 1.0 - hslColor.lightness;
+  final adjustedLightness = invertedLightness < 0.6
+      ? 0.6 + (invertedLightness * 0.4)
+      : invertedLightness;
+  final adjustedSaturation = hslColor.saturation > 0.8
+      ? hslColor.saturation * 0.85
+      : hslColor.saturation;
+  return hslColor
+      .withLightness(adjustedLightness)
+      .withSaturation(adjustedSaturation)
+      .toColor();
+}
+
 class DrawingCanvas extends StatelessWidget {
   final GlobalKey repaintBoundaryKey;
 
@@ -99,14 +115,18 @@ class DrawingCanvas extends StatelessWidget {
                           textObj.text,
                           textStyle: TextStyle(
                             fontSize: textObj.fontSize,
-                            color: textObj.color,
+                            color: provider.isDarkMode
+                                ? _invertColorForText(textObj.color)
+                                : textObj.color,
                           ),
                         )
                       : Text(
                           textObj.text,
                           style: TextStyle(
                             fontSize: textObj.fontSize,
-                            color: textObj.color,
+                            color: provider.isDarkMode
+                                ? _invertColorForText(textObj.color)
+                                : textObj.color,
                           ),
                         ),
                 ),
@@ -209,11 +229,40 @@ class DrawingPainter extends CustomPainter {
           ? (isDarkMode
               ? const Color(0xFF1E1E1E)
               : Colors.white)
-          : stroke.color.withOpacity(stroke.opacity);
+          : (isDarkMode
+              ? _invertColorIntelligently(stroke.color).withOpacity(stroke.opacity)
+              : stroke.color.withOpacity(stroke.opacity));
       paint.strokeWidth = adjustedWidth;
 
       canvas.drawLine(point1.offset, point2.offset, paint);
     }
+  }
+
+  /// Intelligently inverts colors for dark mode
+  /// - Black → White
+  /// - Dark colors → Light versions
+  /// - Preserves hue, inverts lightness
+  Color _invertColorIntelligently(Color color) {
+    // Convert to HSL
+    final hslColor = HSLColor.fromColor(color);
+
+    // Invert lightness: dark becomes light, light becomes dark
+    // We use a complementary lightness calculation
+    final invertedLightness = 1.0 - hslColor.lightness;
+
+    // Boost lightness to ensure visibility on dark background
+    // Minimum lightness of 0.6 to keep colors bright
+    final adjustedLightness = invertedLightness < 0.6 ? 0.6 + (invertedLightness * 0.4) : invertedLightness;
+
+    // Slightly reduce saturation for very saturated colors to avoid eye strain
+    final adjustedSaturation = hslColor.saturation > 0.8
+        ? hslColor.saturation * 0.85
+        : hslColor.saturation;
+
+    return hslColor
+        .withLightness(adjustedLightness)
+        .withSaturation(adjustedSaturation)
+        .toColor();
   }
 
   void _drawGridLines(Canvas canvas, Size size) {

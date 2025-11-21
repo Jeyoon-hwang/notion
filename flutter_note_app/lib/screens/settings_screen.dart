@@ -93,6 +93,28 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 isDarkMode: provider.isDarkMode,
               ),
+              _buildSettingCard(
+                context,
+                icon: Icons.tune,
+                title: '필압 안정화',
+                subtitle: provider.pressureStabilization < 0.3
+                    ? '사실적 (${(provider.pressureStabilization * 100).toInt()}%)'
+                    : provider.pressureStabilization < 0.7
+                        ? '균형 (${(provider.pressureStabilization * 100).toInt()}%)'
+                        : '안정화 (${(provider.pressureStabilization * 100).toInt()}%)',
+                trailing: SizedBox(
+                  width: 150,
+                  child: Slider(
+                    value: provider.pressureStabilization,
+                    min: 0.0,
+                    max: 1.0,
+                    divisions: 10,
+                    activeColor: const Color(0xFF667EEA),
+                    onChanged: (value) => provider.setPressureStabilization(value),
+                  ),
+                ),
+                isDarkMode: provider.isDarkMode,
+              ),
 
               const SizedBox(height: 24),
 

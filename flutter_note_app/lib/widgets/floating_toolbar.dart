@@ -42,6 +42,11 @@ class FloatingToolbar extends StatelessWidget {
 
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
+        // Hide in focus mode
+        if (provider.focusMode) {
+          return const SizedBox.shrink();
+        }
+
         return Positioned(
           bottom: isTablet ? 40 : 30,
           left: isTablet ? 30 : 20,

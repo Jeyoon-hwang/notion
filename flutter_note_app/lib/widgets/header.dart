@@ -13,6 +13,20 @@ class AppHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
+        // Focus mode: Show minimal header
+        if (provider.focusMode) {
+          return Positioned(
+            top: 20,
+            right: 20,
+            child: _ModernIconButton(
+              icon: Icons.fullscreen_exit,
+              onTap: provider.toggleFocusMode,
+              isDarkMode: provider.isDarkMode,
+              isEnabled: true,
+            ),
+          );
+        }
+
         return ClipRRect(
           borderRadius: const BorderRadius.vertical(bottom: Radius.circular(0)),
           child: BackdropFilter(
@@ -125,6 +139,13 @@ class AppHeader extends StatelessWidget {
                         _ModernIconButton(
                           icon: provider.isDarkMode ? Icons.light_mode : Icons.dark_mode,
                           onTap: provider.toggleDarkMode,
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: true,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernIconButton(
+                          icon: Icons.fullscreen,
+                          onTap: provider.toggleFocusMode,
                           isDarkMode: provider.isDarkMode,
                           isEnabled: true,
                         ),

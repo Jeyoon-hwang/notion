@@ -9,6 +9,11 @@ class SliderPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
+        // Hide in focus mode
+        if (provider.focusMode) {
+          return const SizedBox.shrink();
+        }
+
         return Positioned(
           left: 20,
           top: MediaQuery.of(context).size.height * 0.3,
