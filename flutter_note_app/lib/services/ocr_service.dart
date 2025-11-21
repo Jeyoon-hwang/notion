@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:image/image.dart' as img;
 
 class OCRService {
   final TextRecognizer _textRecognizer = TextRecognizer();

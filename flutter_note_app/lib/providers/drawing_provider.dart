@@ -19,7 +19,6 @@ class DrawingProvider extends ChangeNotifier {
   int _historyIndex = -1;
   final int _maxHistory = 50;
 
-  DrawingPoint? _currentPoint;
   final List<DrawingPoint> _currentStroke = [];
 
   // App settings
@@ -457,7 +456,6 @@ class DrawingProvider extends ChangeNotifier {
           return _shapeDrawingService.drawDecagon(_shapeStartPoint!, _shapeSize / 2);
       }
     }
-    return [];
   }
 
   void _saveState() {

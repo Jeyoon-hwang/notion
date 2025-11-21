@@ -446,7 +446,6 @@ class ShapeDrawingService {
 
     // Draw arc
     final startRad = startAngle * pi / 180;
-    final sweepRad = sweepAngle * pi / 180;
 
     for (double i = 0; i <= sweepAngle; i += 2) {
       final angle = startRad + (i * pi / 180);

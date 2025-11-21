@@ -1,4 +1,6 @@
+import 'dart:ui' show PathMetric;
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:provider/provider.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
 import '../providers/drawing_provider.dart';
@@ -28,21 +30,21 @@ class DrawingCanvas extends StatelessWidget {
 
         return Stack(
           children: [
-            GestureDetector(
-              onPanStart: (details) {
+            Listener(
+              onPointerDown: (event) {
                 provider.startDrawing(
-                  details.localPosition,
-                  details.pressure,
-                  isPen: details.kind == PointerDeviceKind.stylus,
+                  event.localPosition,
+                  event.pressure,
+                  isPen: event.kind == PointerDeviceKind.stylus,
                 );
               },
-              onPanUpdate: (details) {
+              onPointerMove: (event) {
                 provider.updateDrawing(
-                  details.localPosition,
-                  details.pressure,
+                  event.localPosition,
+                  event.pressure,
                 );
               },
-              onPanEnd: (details) {
+              onPointerUp: (event) {
                 provider.endDrawing();
               },
               child: RepaintBoundary(
