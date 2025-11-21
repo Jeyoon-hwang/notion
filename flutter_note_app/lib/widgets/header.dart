@@ -151,6 +151,14 @@ class AppHeader extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         _ModernIconButton(
+                          icon: provider.isRecordingAudio ? Icons.stop : Icons.mic,
+                          onTap: provider.toggleAudioRecording,
+                          isDarkMode: provider.isDarkMode,
+                          isEnabled: true,
+                          isRecording: provider.isRecordingAudio,
+                        ),
+                        const SizedBox(width: 8),
+                        _ModernIconButton(
                           icon: Icons.settings_outlined,
                           onTap: () {
                             Navigator.push(
@@ -270,12 +278,14 @@ class _ModernIconButton extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isDarkMode;
   final bool isEnabled;
+  final bool isRecording;
 
   const _ModernIconButton({
     required this.icon,
     required this.onTap,
     required this.isDarkMode,
     required this.isEnabled,
+    this.isRecording = false,
   });
 
   @override
@@ -289,21 +299,27 @@ class _ModernIconButton extends StatelessWidget {
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: isDarkMode
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.05),
+            color: isRecording
+                ? Colors.red.withOpacity(0.2)
+                : (isDarkMode
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.black.withOpacity(0.05)),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.05),
-              width: 1,
+              color: isRecording
+                  ? Colors.red.withOpacity(0.5)
+                  : (isDarkMode
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.05)),
+              width: isRecording ? 2 : 1,
             ),
           ),
           child: Icon(
             icon,
             size: 20,
-            color: isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black.withOpacity(0.7),
+            color: isRecording
+                ? Colors.red
+                : (isDarkMode ? Colors.white.withOpacity(0.9) : Colors.black.withOpacity(0.7)),
           ),
         ),
       ),

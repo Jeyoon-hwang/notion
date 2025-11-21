@@ -10,6 +10,7 @@ import 'package:gal/gal.dart';
 import '../services/ocr_service.dart';
 import '../services/shape_recognition_service.dart';
 import '../services/shape_drawing_service.dart';
+import '../services/audio_recording_service.dart';
 
 enum DrawingMode { pen, eraser, select, shape, text }
 
@@ -56,6 +57,11 @@ class DrawingProvider extends ChangeNotifier {
   final ShapeRecognitionService _shapeService = ShapeRecognitionService();
   final ShapeDrawingService _shapeDrawingService = ShapeDrawingService();
   bool _isProcessingOCR = false;
+
+  // Audio recording service
+  final AudioRecordingService _audioService = AudioRecordingService();
+  bool get isRecordingAudio => _audioService.isRecording;
+  bool get isPlayingAudio => _audioService.isPlaying;
 
   // Shape drawing
   ShapeType2D _selectedShape2D = ShapeType2D.circle;
@@ -454,8 +460,17 @@ class DrawingProvider extends ChangeNotifier {
         // Add stroke to current layer instead of _strokes
         if (_currentLayerIndex >= 0 && _currentLayerIndex < _layers.length) {
           _layers[_currentLayerIndex].strokes.add(stroke);
+          // Add audio sync point if recording
+          if (_audioService.isRecording) {
+            final strokeIndex = _layers[_currentLayerIndex].strokes.length - 1;
+            _audioService.addSyncPoint(strokeIndex, description: 'Shape on ${_layers[_currentLayerIndex].name}');
+          }
         } else {
           _strokes.add(stroke);  // Fallback
+          // Add audio sync point if recording
+          if (_audioService.isRecording) {
+            _audioService.addSyncPoint(_strokes.length - 1, description: 'Shape');
+          }
         }
         _saveState();
       }
@@ -506,8 +521,17 @@ class DrawingProvider extends ChangeNotifier {
       // Add stroke to current layer instead of _strokes
       if (_currentLayerIndex >= 0 && _currentLayerIndex < _layers.length) {
         _layers[_currentLayerIndex].strokes.add(stroke);
+        // Add audio sync point if recording
+        if (_audioService.isRecording) {
+          final strokeIndex = _layers[_currentLayerIndex].strokes.length - 1;
+          _audioService.addSyncPoint(strokeIndex, description: 'Layer ${_layers[_currentLayerIndex].name}');
+        }
       } else {
         _strokes.add(stroke);  // Fallback
+        // Add audio sync point if recording
+        if (_audioService.isRecording) {
+          _audioService.addSyncPoint(_strokes.length - 1);
+        }
       }
       _saveState();
       _currentStroke.clear();
@@ -882,9 +906,41 @@ class DrawingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Audio recording methods
+  Future<bool> startAudioRecording() async {
+    final result = await _audioService.startRecording();
+    notifyListeners();
+    return result;
+  }
+
+  Future<String?> stopAudioRecording() async {
+    final path = await _audioService.stopRecording();
+    notifyListeners();
+    return path;
+  }
+
+  Future<void> toggleAudioRecording() async {
+    if (_audioService.isRecording) {
+      await stopAudioRecording();
+    } else {
+      await startAudioRecording();
+    }
+  }
+
+  Future<void> playAudioRecording(String path) async {
+    await _audioService.playRecording(path);
+    notifyListeners();
+  }
+
+  Future<void> stopAudioPlayback() async {
+    await _audioService.stopPlayback();
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _ocrService.dispose();
+    _audioService.dispose();
     super.dispose();
   }
 }
