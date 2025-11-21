@@ -5,7 +5,7 @@ import '../models/drawing_stroke.dart';
 import '../models/text_object.dart';
 import '../models/app_settings.dart';
 import 'dart:typed_data';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:gal/gal.dart';
 import '../services/ocr_service.dart';
 import '../services/shape_recognition_service.dart';
 import '../services/shape_drawing_service.dart';
@@ -558,12 +558,11 @@ class DrawingProvider extends ChangeNotifier {
           await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
         Uint8List pngBytes = byteData.buffer.asUint8List();
-        final result = await ImageGallerySaver.saveImage(
+        await Gal.putImageBytes(
           pngBytes,
-          quality: 100,
           name: 'note_${DateTime.now().millisecondsSinceEpoch}',
         );
-        print('Image saved: $result');
+        print('Image saved successfully');
       }
     } catch (e) {
       print('Error saving image: $e');
