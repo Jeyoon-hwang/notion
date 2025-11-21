@@ -1090,6 +1090,128 @@ class DrawingProvider extends ChangeNotifier {
     }
   }
 
+  // Double-tap OCR conversion: Convert strokes at position to text
+  // Preserves layout by maintaining position and size of recognized text
+  Future<void> convertStrokesToTextAtPosition(
+    Offset position,
+    GlobalKey repaintBoundaryKey,
+  ) async {
+    try {
+      // Create a selection rect around the tap position (150x150px area)
+      const selectionSize = 150.0;
+      final selectionRect = Rect.fromCenter(
+        center: position,
+        width: selectionSize,
+        height: selectionSize,
+      );
+
+      // Find strokes within this area across all layers
+      final List<({int layerIndex, int strokeIndex, DrawingStroke stroke})> strokesInArea = [];
+
+      for (int i = 0; i < _layers.length; i++) {
+        final layer = _layers[i];
+        if (!layer.isVisible) continue; // Skip invisible layers
+
+        for (int j = 0; j < layer.strokes.length; j++) {
+          final stroke = layer.strokes[j];
+          if (_isStrokeInSelection(stroke, selectionRect)) {
+            strokesInArea.add((layerIndex: i, strokeIndex: j, stroke: stroke));
+          }
+        }
+      }
+
+      // If no strokes found, return early
+      if (strokesInArea.isEmpty) {
+        print('No strokes found at position for OCR conversion');
+        return;
+      }
+
+      // Render the strokes in the selection area to an image
+      final RenderRepaintBoundary boundary = repaintBoundaryKey.currentContext!
+          .findRenderObject() as RenderRepaintBoundary;
+      final ui.Image fullImage = await boundary.toImage(pixelRatio: 2.0);
+
+      // Create a recorder to capture just the selected area
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      // Draw the selected portion
+      canvas.drawImageRect(
+        fullImage,
+        selectionRect,
+        Rect.fromLTWH(0, 0, selectionRect.width, selectionRect.height),
+        Paint(),
+      );
+
+      final picture = recorder.endRecording();
+      final croppedImage = await picture.toImage(
+        selectionRect.width.toInt(),
+        selectionRect.height.toInt(),
+      );
+
+      // Perform OCR with layout preservation
+      final textBlocks = await _ocrService.recognizeTextWithLayout(
+        croppedImage,
+        Rect.fromLTWH(0, 0, selectionRect.width, selectionRect.height),
+      );
+
+      // Convert each recognized text block to a TextObject
+      for (final block in textBlocks) {
+        if (block.text.trim().isEmpty) continue;
+
+        // Calculate absolute position (block.position is relative to selectionRect)
+        final absolutePosition = Offset(
+          selectionRect.left + block.position.dx,
+          selectionRect.top + block.position.dy,
+        );
+
+        // Check if this is a math formula
+        final isMath = _ocrService.isMathFormula(block.text);
+        final text = isMath ? _ocrService.convertToLaTeX(block.text) : block.text;
+
+        // Set text input position for addTextObject
+        _textInputPosition = absolutePosition;
+
+        // Add the text object
+        addTextObject(
+          text,
+          type: isMath ? TextType.latex : TextType.normal,
+        );
+      }
+
+      // Remove the original strokes that were converted
+      // Process in reverse order to maintain indices
+      strokesInArea.sort((a, b) {
+        final layerCompare = b.layerIndex.compareTo(a.layerIndex);
+        if (layerCompare != 0) return layerCompare;
+        return b.strokeIndex.compareTo(a.strokeIndex);
+      });
+
+      for (final strokeInfo in strokesInArea) {
+        final layer = _layers[strokeInfo.layerIndex];
+        if (strokeInfo.strokeIndex < layer.strokes.length) {
+          // Record history for each removed stroke
+          _historyManager.recordAction(HistoryAction(
+            type: HistoryActionType.removeStroke,
+            layerId: layer.id,
+            data: strokeInfo.stroke,
+            description: 'Remove stroke (OCR conversion)',
+            index: strokeInfo.strokeIndex,
+          ));
+
+          layer.strokes.removeAt(strokeInfo.strokeIndex);
+        }
+      }
+
+      _saveToCurrentNote();
+      notifyListeners();
+
+      print('OCR conversion completed: ${textBlocks.length} text blocks recognized');
+    } catch (e) {
+      print('Error converting strokes to text: $e');
+    }
+  }
+
   // Text input methods
   void startTextInput(Offset position) {
     _textInputPosition = position;

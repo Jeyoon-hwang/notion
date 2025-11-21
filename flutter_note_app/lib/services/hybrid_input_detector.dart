@@ -6,6 +6,7 @@ import '../providers/drawing_provider.dart';
 /// Implements "Fluidity" philosophy - no mode switching, just tool detection
 class HybridInputDetector {
   final DrawingProvider provider;
+  final GlobalKey repaintBoundaryKey;
 
   // Input state
   PointerDeviceKind? _lastInputDevice;
@@ -17,7 +18,7 @@ class HybridInputDetector {
   static const double _doubleTapDistance = 20.0;
   static const Duration _doubleTapTimeout = Duration(milliseconds: 300);
 
-  HybridInputDetector(this.provider);
+  HybridInputDetector(this.provider, this.repaintBoundaryKey);
 
   /// Handle pointer down event with automatic mode switching
   void onPointerDown(PointerDownEvent event) {
@@ -113,21 +114,20 @@ class HybridInputDetector {
     final textObj = _findTextObjectAt(position);
 
     if (textObj != null) {
-      // TODO: Trigger OCR conversion for this text object
-      // This will be implemented in the next step
+      // Double-tapped on existing text object - select it for editing
       print('Double tap on text object: ${textObj.id}');
       provider.selectTextObject(textObj);
     } else {
-      // Check if there are strokes at this position that can be OCR'd
-      // Create a small selection rect around the tap
-      final selectionRect = Rect.fromCenter(
-        center: position,
-        width: 100,
-        height: 100,
-      );
+      // No text object found - try to convert handwriting strokes to text
+      print('Double tap for OCR conversion at: $position');
 
-      // TODO: Trigger OCR for strokes in this area
-      print('Double tap for OCR at: $position');
+      // Trigger layout-preserving OCR conversion
+      // This will:
+      // 1. Find strokes in the area around the tap
+      // 2. Run OCR to recognize the handwriting
+      // 3. Convert to text objects at the same position
+      // 4. Remove the original strokes
+      provider.convertStrokesToTextAtPosition(position, repaintBoundaryKey);
     }
   }
 
@@ -170,12 +170,13 @@ class HybridInputDetector {
 /// Extension to add hybrid input detection to DrawingProvider
 extension HybridInputExtension on DrawingProvider {
   /// Get or create hybrid input detector
+  /// Note: You must provide the repaintBoundaryKey for OCR functionality
   static final _detectors = <DrawingProvider, HybridInputDetector>{};
 
-  HybridInputDetector get hybridInputDetector {
-    if (!_detectors.containsKey(this)) {
-      _detectors[this] = HybridInputDetector(this);
-    }
+  HybridInputDetector getHybridInputDetector(GlobalKey repaintBoundaryKey) {
+    // Always create new detector with the provided key
+    // This ensures we always have the correct key reference
+    _detectors[this] = HybridInputDetector(this, repaintBoundaryKey);
     return _detectors[this]!;
   }
 }

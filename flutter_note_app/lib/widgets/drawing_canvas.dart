@@ -47,8 +47,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
   Widget build(BuildContext context) {
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
-        // Initialize hybrid input detector
-        _hybridDetector ??= provider.hybridInputDetector;
+        // Initialize hybrid input detector with repaint boundary key
+        _hybridDetector ??= provider.getHybridInputDetector(widget.repaintBoundaryKey);
 
         // Show text input dialog when text input position is set
         if (provider.textInputPosition != null) {
