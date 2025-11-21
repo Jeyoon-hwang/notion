@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
 import '../screens/settings_screen.dart';
 import '../screens/notes_list_screen.dart';
+import './history_feedback_toast.dart';
 
 class AppHeader extends StatelessWidget {
   final GlobalKey repaintBoundaryKey;
@@ -130,14 +131,26 @@ class AppHeader extends StatelessWidget {
                         const SizedBox(width: 12),
                         _ModernIconButton(
                           icon: Icons.undo_rounded,
-                          onTap: provider.canUndo ? provider.undo : null,
+                          onTap: provider.canUndo ? () {
+                            final action = provider.historyManager.nextUndoAction;
+                            provider.undo();
+                            if (action != null) {
+                              HistoryFeedbackToast.showUndo(context, action, provider.isDarkMode);
+                            }
+                          } : null,
                           isDarkMode: provider.isDarkMode,
                           isEnabled: provider.canUndo,
                         ),
                         const SizedBox(width: 8),
                         _ModernIconButton(
                           icon: Icons.redo_rounded,
-                          onTap: provider.canRedo ? provider.redo : null,
+                          onTap: provider.canRedo ? () {
+                            final action = provider.historyManager.nextRedoAction;
+                            provider.redo();
+                            if (action != null) {
+                              HistoryFeedbackToast.showRedo(context, action, provider.isDarkMode);
+                            }
+                          } : null,
                           isDarkMode: provider.isDarkMode,
                           isEnabled: provider.canRedo,
                         ),

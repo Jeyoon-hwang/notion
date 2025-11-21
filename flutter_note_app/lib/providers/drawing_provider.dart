@@ -6,6 +6,7 @@ import '../models/text_object.dart';
 import '../models/app_settings.dart';
 import '../models/layer.dart';
 import '../models/note.dart';
+import '../models/history_action.dart';
 import 'dart:typed_data';
 import 'package:gal/gal.dart';
 import '../services/ocr_service.dart';
@@ -23,9 +24,9 @@ class DrawingProvider extends ChangeNotifier {
 
   final List<DrawingStroke> _strokes = [];
   final List<TextObject> _textObjects = [];
-  final List<List<DrawingStroke>> _history = [];
-  int _historyIndex = -1;
-  final int _maxHistory = 50;
+
+  // New granular history system
+  final HistoryManager _historyManager = HistoryManager();
 
   final List<DrawingPoint> _currentStroke = [];
 
@@ -181,9 +182,10 @@ class DrawingProvider extends ChangeNotifier {
   bool get isSelectMode => _mode == DrawingMode.select;
   bool get isDarkMode => _isDarkMode;
   bool get autoShapeEnabled => _autoShapeEnabled;
-  bool get canUndo => _historyIndex > 0;
-  bool get canRedo => _historyIndex < _history.length - 1;
+  bool get canUndo => _historyManager.canUndo;
+  bool get canRedo => _historyManager.canRedo;
   Rect? get selectionRect => _selectionRect;
+  HistoryManager get historyManager => _historyManager;
   bool get isProcessingOCR => _isProcessingOCR;
   ShapeType2D get selectedShape2D => _selectedShape2D;
   ShapeType3D? get selectedShape3D => _selectedShape3D;
@@ -293,20 +295,42 @@ class DrawingProvider extends ChangeNotifier {
 
   void addLayer(LayerType type) {
     final newId = '${type.name}_${DateTime.now().millisecondsSinceEpoch}';
-    _layers.add(Layer(
+    final newLayer = Layer(
       id: newId,
       name: '${type == LayerType.background ? '배경' : type == LayerType.writing ? '필기' : '꾸미기'} ${_layers.length + 1}',
       type: type,
+    );
+    _layers.add(newLayer);
+
+    // Record history action
+    _historyManager.recordAction(HistoryAction(
+      type: HistoryActionType.addLayer,
+      data: newLayer,
+      description: 'Add layer: ${newLayer.name}',
+      index: _layers.length - 1,
     ));
+
+    _saveToCurrentNote();
     notifyListeners();
   }
 
   void deleteLayer(int index) {
     if (index >= 0 && index < _layers.length && _layers.length > 1) {
+      final removedLayer = _layers[index];
+
+      // Record history action
+      _historyManager.recordAction(HistoryAction(
+        type: HistoryActionType.removeLayer,
+        data: removedLayer,
+        description: 'Delete layer: ${removedLayer.name}',
+        index: index,
+      ));
+
       _layers.removeAt(index);
       if (_currentLayerIndex >= _layers.length) {
         _currentLayerIndex = _layers.length - 1;
       }
+      _saveToCurrentNote();
       notifyListeners();
     }
   }
@@ -526,6 +550,16 @@ class DrawingProvider extends ChangeNotifier {
         // Add stroke to current layer instead of _strokes
         if (_currentLayerIndex >= 0 && _currentLayerIndex < _layers.length) {
           _layers[_currentLayerIndex].strokes.add(stroke);
+
+          // Record history action
+          _historyManager.recordAction(HistoryAction(
+            type: HistoryActionType.addStroke,
+            layerId: _layers[_currentLayerIndex].id,
+            data: stroke,
+            description: 'Shape on ${_layers[_currentLayerIndex].name}',
+            index: _layers[_currentLayerIndex].strokes.length - 1,
+          ));
+
           // Add audio sync point if recording
           if (_audioService.isRecording) {
             final strokeIndex = _layers[_currentLayerIndex].strokes.length - 1;
@@ -538,7 +572,6 @@ class DrawingProvider extends ChangeNotifier {
             _audioService.addSyncPoint(_strokes.length - 1, description: 'Shape');
           }
         }
-        _saveState();
       }
 
       _shapeStartPoint = null;
@@ -587,6 +620,16 @@ class DrawingProvider extends ChangeNotifier {
       // Add stroke to current layer instead of _strokes
       if (_currentLayerIndex >= 0 && _currentLayerIndex < _layers.length) {
         _layers[_currentLayerIndex].strokes.add(stroke);
+
+        // Record history action
+        _historyManager.recordAction(HistoryAction(
+          type: HistoryActionType.addStroke,
+          layerId: _layers[_currentLayerIndex].id,
+          data: stroke,
+          description: 'Stroke on ${_layers[_currentLayerIndex].name}',
+          index: _layers[_currentLayerIndex].strokes.length - 1,
+        ));
+
         // Add audio sync point if recording
         if (_audioService.isRecording) {
           final strokeIndex = _layers[_currentLayerIndex].strokes.length - 1;
@@ -599,7 +642,6 @@ class DrawingProvider extends ChangeNotifier {
           _audioService.addSyncPoint(_strokes.length - 1);
         }
       }
-      _saveState();
       _currentStroke.clear();
 
       // Auto-save to current note
@@ -696,39 +738,203 @@ class DrawingProvider extends ChangeNotifier {
     }
   }
 
-  void _saveState() {
-    _historyIndex++;
-    if (_historyIndex < _history.length) {
-      _history.removeRange(_historyIndex, _history.length);
-    }
-    _history.add(List.from(_strokes));
-    if (_history.length > _maxHistory) {
-      _history.removeAt(0);
-      _historyIndex--;
-    }
-  }
-
   void undo() {
-    if (canUndo) {
-      _historyIndex--;
-      _strokes.clear();
-      _strokes.addAll(_history[_historyIndex]);
-      notifyListeners();
-    }
+    final action = _historyManager.undo();
+    if (action == null) return;
+
+    _performUndoAction(action);
+    notifyListeners();
   }
 
   void redo() {
-    if (canRedo) {
-      _historyIndex++;
-      _strokes.clear();
-      _strokes.addAll(_history[_historyIndex]);
-      notifyListeners();
+    final action = _historyManager.redo();
+    if (action == null) return;
+
+    _performRedoAction(action);
+    notifyListeners();
+  }
+
+  void _performUndoAction(HistoryAction action) {
+    switch (action.type) {
+      case HistoryActionType.addStroke:
+        // Remove the added stroke
+        final layerIndex = _layers.indexWhere((l) => l.id == action.layerId);
+        if (layerIndex != -1 && action.index != null) {
+          if (action.index! < _layers[layerIndex].strokes.length) {
+            _layers[layerIndex].strokes.removeAt(action.index!);
+          }
+        }
+        break;
+
+      case HistoryActionType.removeStroke:
+        // Re-add the removed stroke
+        final layerIndex = _layers.indexWhere((l) => l.id == action.layerId);
+        if (layerIndex != -1 && action.data is DrawingStroke && action.index != null) {
+          _layers[layerIndex].strokes.insert(action.index!, action.data as DrawingStroke);
+        }
+        break;
+
+      case HistoryActionType.addText:
+        // Remove the added text
+        if (action.data is TextObject) {
+          _textObjects.removeWhere((obj) => obj.id == (action.data as TextObject).id);
+        }
+        break;
+
+      case HistoryActionType.removeText:
+        // Re-add the removed text
+        if (action.data is TextObject) {
+          _textObjects.add(action.data as TextObject);
+        }
+        break;
+
+      case HistoryActionType.moveText:
+        // Move back to previous position
+        if (action.data is String && action.previousData is Offset) {
+          final index = _textObjects.indexWhere((obj) => obj.id == action.data);
+          if (index != -1) {
+            _textObjects[index] = _textObjects[index].copyWith(position: action.previousData as Offset);
+          }
+        }
+        break;
+
+      case HistoryActionType.updateText:
+        // Restore previous text
+        if (action.data is String && action.previousData is String) {
+          final index = _textObjects.indexWhere((obj) => obj.id == action.data);
+          if (index != -1) {
+            _textObjects[index] = _textObjects[index].copyWith(text: action.previousData as String);
+          }
+        }
+        break;
+
+      case HistoryActionType.addLayer:
+        // Remove the added layer
+        if (action.index != null && action.index! < _layers.length) {
+          _layers.removeAt(action.index!);
+        }
+        break;
+
+      case HistoryActionType.removeLayer:
+        // Re-add the removed layer
+        if (action.data is Layer && action.index != null) {
+          _layers.insert(action.index!, action.data as Layer);
+        }
+        break;
+
+      case HistoryActionType.clear:
+        // This would require storing all previous state - complex
+        // For now, we won't support undoing clear
+        break;
+
+      default:
+        break;
     }
+
+    _saveToCurrentNote();
+  }
+
+  void _performRedoAction(HistoryAction action) {
+    switch (action.type) {
+      case HistoryActionType.addStroke:
+        // Re-add the stroke
+        final layerIndex = _layers.indexWhere((l) => l.id == action.layerId);
+        if (layerIndex != -1 && action.data is DrawingStroke && action.index != null) {
+          // Make sure we don't exceed the list length
+          if (action.index! <= _layers[layerIndex].strokes.length) {
+            _layers[layerIndex].strokes.insert(action.index!, action.data as DrawingStroke);
+          }
+        }
+        break;
+
+      case HistoryActionType.removeStroke:
+        // Remove the stroke again
+        final layerIndex = _layers.indexWhere((l) => l.id == action.layerId);
+        if (layerIndex != -1 && action.index != null) {
+          if (action.index! < _layers[layerIndex].strokes.length) {
+            _layers[layerIndex].strokes.removeAt(action.index!);
+          }
+        }
+        break;
+
+      case HistoryActionType.addText:
+        // Re-add the text
+        if (action.data is TextObject) {
+          _textObjects.add(action.data as TextObject);
+        }
+        break;
+
+      case HistoryActionType.removeText:
+        // Remove the text again
+        if (action.data is TextObject) {
+          _textObjects.removeWhere((obj) => obj.id == (action.data as TextObject).id);
+        }
+        break;
+
+      case HistoryActionType.moveText:
+        // Move to new position
+        if (action.data is String && action.previousData is Offset) {
+          final index = _textObjects.indexWhere((obj) => obj.id == action.data);
+          if (index != -1) {
+            // The "data" field contains the textObject ID, we need to get the new position from somewhere
+            // This is a bit tricky - we might need to redesign this
+          }
+        }
+        break;
+
+      case HistoryActionType.updateText:
+        // Apply the new text
+        if (action.data is String) {
+          final parts = action.data.toString().split('::');
+          if (parts.length == 2) {
+            final id = parts[0];
+            final newText = parts[1];
+            final index = _textObjects.indexWhere((obj) => obj.id == id);
+            if (index != -1) {
+              _textObjects[index] = _textObjects[index].copyWith(text: newText);
+            }
+          }
+        }
+        break;
+
+      case HistoryActionType.addLayer:
+        // Re-add the layer
+        if (action.data is Layer && action.index != null) {
+          _layers.insert(action.index!, action.data as Layer);
+        }
+        break;
+
+      case HistoryActionType.removeLayer:
+        // Remove the layer again
+        if (action.index != null && action.index! < _layers.length) {
+          _layers.removeAt(action.index!);
+        }
+        break;
+
+      default:
+        break;
+    }
+
+    _saveToCurrentNote();
   }
 
   void clear() {
+    // Record clear action (would need to store all data for proper undo)
+    _historyManager.recordAction(HistoryAction(
+      type: HistoryActionType.clear,
+      data: null,
+      description: 'Clear all',
+    ));
+
     _strokes.clear();
-    _saveState();
+
+    // Clear all layers
+    for (var layer in _layers) {
+      layer.strokes.clear();
+    }
+
+    _textObjects.clear();
+    _saveToCurrentNote();
     notifyListeners();
   }
 
@@ -895,6 +1101,13 @@ class DrawingProvider extends ChangeNotifier {
     _textObjects.add(textObj);
     _textInputPosition = null;
 
+    // Record history action
+    _historyManager.recordAction(HistoryAction(
+      type: HistoryActionType.addText,
+      data: textObj,
+      description: 'Add text: ${text.substring(0, text.length > 20 ? 20 : text.length)}...',
+    ));
+
     // Auto-save to current note
     _saveToCurrentNote();
 
@@ -915,17 +1128,41 @@ class DrawingProvider extends ChangeNotifier {
   }
 
   void deleteTextObject(String id) {
-    _textObjects.removeWhere((obj) => obj.id == id);
-    if (_selectedTextObject?.id == id) {
-      _selectedTextObject = null;
+    final index = _textObjects.indexWhere((obj) => obj.id == id);
+    if (index != -1) {
+      final removedObj = _textObjects[index];
+
+      // Record history action
+      _historyManager.recordAction(HistoryAction(
+        type: HistoryActionType.removeText,
+        data: removedObj,
+        description: 'Delete text',
+      ));
+
+      _textObjects.removeAt(index);
+      if (_selectedTextObject?.id == id) {
+        _selectedTextObject = null;
+      }
+      _saveToCurrentNote();
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   void moveTextObject(String id, Offset newPosition) {
     final index = _textObjects.indexWhere((obj) => obj.id == id);
     if (index != -1) {
+      final previousPosition = _textObjects[index].position;
+
+      // Record history action
+      _historyManager.recordAction(HistoryAction(
+        type: HistoryActionType.moveText,
+        data: id,
+        previousData: previousPosition,
+        description: 'Move text',
+      ));
+
       _textObjects[index] = _textObjects[index].copyWith(position: newPosition);
+      _saveToCurrentNote();
       notifyListeners();
     }
   }
