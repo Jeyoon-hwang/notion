@@ -842,6 +842,32 @@ class DrawingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Toolbar customization methods
+  void togglePenTool() {
+    _settings = _settings.copyWith(showPenTool: !_settings.showPenTool);
+    notifyListeners();
+  }
+
+  void toggleEraserTool() {
+    _settings = _settings.copyWith(showEraserTool: !_settings.showEraserTool);
+    notifyListeners();
+  }
+
+  void toggleSelectTool() {
+    _settings = _settings.copyWith(showSelectTool: !_settings.showSelectTool);
+    notifyListeners();
+  }
+
+  void toggleShapeTool() {
+    _settings = _settings.copyWith(showShapeTool: !_settings.showShapeTool);
+    notifyListeners();
+  }
+
+  void toggleTextTool() {
+    _settings = _settings.copyWith(showTextTool: !_settings.showTextTool);
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _ocrService.dispose();

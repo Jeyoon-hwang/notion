@@ -92,51 +92,62 @@ class FloatingToolbar extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Tool buttons
-                        _ModernToolButton(
-                          icon: Icons.edit,
-                          isActive: provider.mode == DrawingMode.pen,
-                          onTap: () => provider.setMode(DrawingMode.pen),
-                          isDarkMode: provider.isDarkMode,
-                          size: buttonSize,
-                          iconSize: iconSize,
-                        ),
-                        SizedBox(width: spacing),
-                        _ModernToolButton(
-                          icon: Icons.auto_fix_high_outlined,
-                          isActive: provider.mode == DrawingMode.eraser,
-                          onTap: () => provider.setMode(DrawingMode.eraser),
-                          isDarkMode: provider.isDarkMode,
-                          size: buttonSize,
-                          iconSize: iconSize,
-                        ),
-                        SizedBox(width: spacing),
-                        _ModernToolButton(
-                          icon: Icons.select_all,
-                          isActive: provider.mode == DrawingMode.select,
-                          onTap: () => provider.setMode(DrawingMode.select),
-                          isDarkMode: provider.isDarkMode,
-                          size: buttonSize,
-                          iconSize: iconSize,
-                        ),
-                        SizedBox(width: spacing),
-                        _ModernToolButton(
-                          icon: Icons.category_outlined,
-                          isActive: provider.mode == DrawingMode.shape,
-                          onTap: () => provider.setMode(DrawingMode.shape),
-                          isDarkMode: provider.isDarkMode,
-                          size: buttonSize,
-                          iconSize: iconSize,
-                        ),
-                        SizedBox(width: spacing),
-                        _ModernToolButton(
-                          icon: Icons.text_fields,
-                          isActive: provider.mode == DrawingMode.text,
-                          onTap: () => provider.setMode(DrawingMode.text),
-                          isDarkMode: provider.isDarkMode,
-                          size: buttonSize,
-                          iconSize: iconSize,
-                        ),
+                        // Tool buttons (only show if enabled in settings)
+                        if (provider.settings.showPenTool) ...[
+                          _ModernToolButton(
+                            icon: Icons.edit,
+                            isActive: provider.mode == DrawingMode.pen,
+                            onTap: () => provider.setMode(DrawingMode.pen),
+                            isDarkMode: provider.isDarkMode,
+                            size: buttonSize,
+                            iconSize: iconSize,
+                          ),
+                          SizedBox(width: spacing),
+                        ],
+                        if (provider.settings.showEraserTool) ...[
+                          _ModernToolButton(
+                            icon: Icons.auto_fix_high_outlined,
+                            isActive: provider.mode == DrawingMode.eraser,
+                            onTap: () => provider.setMode(DrawingMode.eraser),
+                            isDarkMode: provider.isDarkMode,
+                            size: buttonSize,
+                            iconSize: iconSize,
+                          ),
+                          SizedBox(width: spacing),
+                        ],
+                        if (provider.settings.showSelectTool) ...[
+                          _ModernToolButton(
+                            icon: Icons.select_all,
+                            isActive: provider.mode == DrawingMode.select,
+                            onTap: () => provider.setMode(DrawingMode.select),
+                            isDarkMode: provider.isDarkMode,
+                            size: buttonSize,
+                            iconSize: iconSize,
+                          ),
+                          SizedBox(width: spacing),
+                        ],
+                        if (provider.settings.showShapeTool) ...[
+                          _ModernToolButton(
+                            icon: Icons.category_outlined,
+                            isActive: provider.mode == DrawingMode.shape,
+                            onTap: () => provider.setMode(DrawingMode.shape),
+                            isDarkMode: provider.isDarkMode,
+                            size: buttonSize,
+                            iconSize: iconSize,
+                          ),
+                          SizedBox(width: spacing),
+                        ],
+                        if (provider.settings.showTextTool) ...[
+                          _ModernToolButton(
+                            icon: Icons.text_fields,
+                            isActive: provider.mode == DrawingMode.text,
+                            onTap: () => provider.setMode(DrawingMode.text),
+                            isDarkMode: provider.isDarkMode,
+                            size: buttonSize,
+                            iconSize: iconSize,
+                          ),
+                          SizedBox(width: spacing),
+                        ],
 
                         // Auto-shape toggle (only show when pen mode)
                         if (provider.mode == DrawingMode.pen) ...[

@@ -6,6 +6,13 @@ class AppSettings {
   double defaultLineWidth;
   double defaultOpacity;
 
+  // Toolbar customization
+  bool showPenTool;
+  bool showEraserTool;
+  bool showSelectTool;
+  bool showShapeTool;
+  bool showTextTool;
+
   AppSettings({
     this.palmRejection = false,
     this.isDarkMode = false,
@@ -13,6 +20,11 @@ class AppSettings {
     this.showGridLines = false,
     this.defaultLineWidth = 3.0,
     this.defaultOpacity = 1.0,
+    this.showPenTool = true,
+    this.showEraserTool = true,
+    this.showSelectTool = true,
+    this.showShapeTool = true,
+    this.showTextTool = true,
   });
 
   AppSettings copyWith({
@@ -22,6 +34,11 @@ class AppSettings {
     bool? showGridLines,
     double? defaultLineWidth,
     double? defaultOpacity,
+    bool? showPenTool,
+    bool? showEraserTool,
+    bool? showSelectTool,
+    bool? showShapeTool,
+    bool? showTextTool,
   }) {
     return AppSettings(
       palmRejection: palmRejection ?? this.palmRejection,
@@ -30,6 +47,11 @@ class AppSettings {
       showGridLines: showGridLines ?? this.showGridLines,
       defaultLineWidth: defaultLineWidth ?? this.defaultLineWidth,
       defaultOpacity: defaultOpacity ?? this.defaultOpacity,
+      showPenTool: showPenTool ?? this.showPenTool,
+      showEraserTool: showEraserTool ?? this.showEraserTool,
+      showSelectTool: showSelectTool ?? this.showSelectTool,
+      showShapeTool: showShapeTool ?? this.showShapeTool,
+      showTextTool: showTextTool ?? this.showTextTool,
     );
   }
 }

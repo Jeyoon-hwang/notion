@@ -24,11 +24,19 @@ Color _invertColorForText(Color color) {
       .toColor();
 }
 
-class DrawingCanvas extends StatelessWidget {
+class DrawingCanvas extends StatefulWidget {
   final GlobalKey repaintBoundaryKey;
 
   const DrawingCanvas({Key? key, required this.repaintBoundaryKey})
       : super(key: key);
+
+  @override
+  State<DrawingCanvas> createState() => _DrawingCanvasState();
+}
+
+class _DrawingCanvasState extends State<DrawingCanvas> {
+  Offset? _twoFingerStartPosition;
+  int _pointerCount = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -48,23 +56,88 @@ class DrawingCanvas extends StatelessWidget {
           children: [
             Listener(
               onPointerDown: (event) {
-                provider.startDrawing(
-                  event.localPosition,
-                  event.pressure,
-                  isPen: event.kind == PointerDeviceKind.stylus,
-                );
+                _pointerCount++;
+
+                // Track two-finger gesture start position
+                if (_pointerCount == 2) {
+                  _twoFingerStartPosition = event.localPosition;
+                  return; // Don't start drawing with two fingers
+                }
+
+                // Only start drawing with one finger
+                if (_pointerCount == 1) {
+                  provider.startDrawing(
+                    event.localPosition,
+                    event.pressure,
+                    isPen: event.kind == PointerDeviceKind.stylus,
+                  );
+                }
               },
               onPointerMove: (event) {
-                provider.updateDrawing(
-                  event.localPosition,
-                  event.pressure,
-                );
+                // Handle two-finger swipe gesture
+                if (_pointerCount == 2 && _twoFingerStartPosition != null) {
+                  final delta = event.localPosition - _twoFingerStartPosition!;
+                  final threshold = 50.0;
+
+                  // Check if swipe distance exceeds threshold
+                  if (delta.dx.abs() > threshold || delta.dy.abs() > threshold) {
+                    // Determine primary direction
+                    if (delta.dx.abs() > delta.dy.abs()) {
+                      // Horizontal swipe
+                      if (delta.dx > 0) {
+                        // Right swipe: Select mode
+                        provider.setMode(DrawingMode.select);
+                      } else {
+                        // Left swipe: Shape mode
+                        provider.setMode(DrawingMode.shape);
+                      }
+                    } else {
+                      // Vertical swipe
+                      if (delta.dy < 0) {
+                        // Up swipe: Pen mode
+                        provider.setMode(DrawingMode.pen);
+                      } else {
+                        // Down swipe: Eraser mode
+                        provider.setMode(DrawingMode.eraser);
+                      }
+                    }
+
+                    // Reset to prevent multiple triggers
+                    _twoFingerStartPosition = null;
+                  }
+                  return;
+                }
+
+                // Only update drawing with one finger
+                if (_pointerCount == 1) {
+                  provider.updateDrawing(
+                    event.localPosition,
+                    event.pressure,
+                  );
+                }
               },
               onPointerUp: (event) {
-                provider.endDrawing();
+                _pointerCount--;
+
+                if (_pointerCount < 0) _pointerCount = 0;
+
+                // Reset two-finger tracking
+                if (_pointerCount < 2) {
+                  _twoFingerStartPosition = null;
+                }
+
+                // End drawing only if no fingers remain
+                if (_pointerCount == 0) {
+                  provider.endDrawing();
+                }
+              },
+              onPointerCancel: (event) {
+                _pointerCount--;
+                if (_pointerCount < 0) _pointerCount = 0;
+                _twoFingerStartPosition = null;
               },
               child: RepaintBoundary(
-                key: repaintBoundaryKey,
+                key: widget.repaintBoundaryKey,
                 child: CustomPaint(
                   painter: DrawingPainter(
                     strokes: provider.strokes,

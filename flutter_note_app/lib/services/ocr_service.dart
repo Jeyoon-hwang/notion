@@ -3,6 +3,21 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
+/// Text block with position information for layout preservation
+class TextBlock {
+  final String text;
+  final Offset position;
+  final Size size;
+  final double confidence;
+
+  TextBlock({
+    required this.text,
+    required this.position,
+    required this.size,
+    required this.confidence,
+  });
+}
+
 class OCRService {
   final TextRecognizer _textRecognizer = TextRecognizer();
 
@@ -28,6 +43,49 @@ class OCRService {
     } catch (e) {
       print('Error recognizing text: $e');
       return '';
+    }
+  }
+
+  /// Recognize text with layout preservation
+  /// Returns a list of text blocks with their positions
+  Future<List<TextBlock>> recognizeTextWithLayout(ui.Image image, Rect selectionRect) async {
+    try {
+      // Convert ui.Image to InputImage
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return [];
+
+      final Uint8List bytes = byteData.buffer.asUint8List();
+      final InputImage inputImage = InputImage.fromBytes(
+        bytes: bytes,
+        metadata: InputImageMetadata(
+          size: Size(image.width.toDouble(), image.height.toDouble()),
+          rotation: InputImageRotation.rotation0deg,
+          format: InputImageFormat.bgra8888,
+          bytesPerRow: image.width * 4,
+        ),
+      );
+
+      final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+
+      final List<TextBlock> blocks = [];
+      for (final textBlock in recognizedText.blocks) {
+        final blockRect = textBlock.boundingBox;
+
+        // Check if text block is within selection
+        if (blockRect.overlaps(selectionRect)) {
+          blocks.add(TextBlock(
+            text: textBlock.text,
+            position: Offset(blockRect.left, blockRect.top),
+            size: blockRect.size,
+            confidence: textBlock.confidence ?? 1.0,
+          ));
+        }
+      }
+
+      return blocks;
+    } catch (e) {
+      print('Error recognizing text with layout: $e');
+      return [];
     }
   }
 

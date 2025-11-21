@@ -118,6 +118,71 @@ class SettingsScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
+              // Toolbar Customization
+              _buildSectionHeader('툴바 커스터마이징', provider.isDarkMode),
+              _buildSettingCard(
+                context,
+                icon: Icons.edit,
+                title: '펜 도구',
+                subtitle: '펜 도구 표시',
+                trailing: Switch(
+                  value: provider.settings.showPenTool,
+                  onChanged: (value) => provider.togglePenTool(),
+                  activeColor: const Color(0xFF667EEA),
+                ),
+                isDarkMode: provider.isDarkMode,
+              ),
+              _buildSettingCard(
+                context,
+                icon: Icons.auto_fix_high_outlined,
+                title: '지우개 도구',
+                subtitle: '지우개 도구 표시',
+                trailing: Switch(
+                  value: provider.settings.showEraserTool,
+                  onChanged: (value) => provider.toggleEraserTool(),
+                  activeColor: const Color(0xFF667EEA),
+                ),
+                isDarkMode: provider.isDarkMode,
+              ),
+              _buildSettingCard(
+                context,
+                icon: Icons.select_all,
+                title: '선택 도구',
+                subtitle: '선택 도구 표시',
+                trailing: Switch(
+                  value: provider.settings.showSelectTool,
+                  onChanged: (value) => provider.toggleSelectTool(),
+                  activeColor: const Color(0xFF667EEA),
+                ),
+                isDarkMode: provider.isDarkMode,
+              ),
+              _buildSettingCard(
+                context,
+                icon: Icons.category_outlined,
+                title: '도형 도구',
+                subtitle: '도형 도구 표시',
+                trailing: Switch(
+                  value: provider.settings.showShapeTool,
+                  onChanged: (value) => provider.toggleShapeTool(),
+                  activeColor: const Color(0xFF667EEA),
+                ),
+                isDarkMode: provider.isDarkMode,
+              ),
+              _buildSettingCard(
+                context,
+                icon: Icons.text_fields,
+                title: '텍스트 도구',
+                subtitle: '텍스트 도구 표시',
+                trailing: Switch(
+                  value: provider.settings.showTextTool,
+                  onChanged: (value) => provider.toggleTextTool(),
+                  activeColor: const Color(0xFF667EEA),
+                ),
+                isDarkMode: provider.isDarkMode,
+              ),
+
+              const SizedBox(height: 24),
+
               // Default Settings
               _buildSectionHeader('기본 설정', provider.isDarkMode),
               _buildSettingCard(
