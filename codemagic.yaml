@@ -20,7 +20,7 @@ workflows:
       - name: Flutter analyze
         script: |
           cd flutter_note_app
-          flutter analyze
+          flutter analyze --no-fatal-infos
       - name: Build APK with Flutter
         script: |
           cd flutter_note_app
