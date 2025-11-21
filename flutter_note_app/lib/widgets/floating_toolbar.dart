@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
+import '../utils/responsive_util.dart';
 import './ocr_result_dialog.dart';
 
 class FloatingToolbar extends StatelessWidget {
@@ -11,28 +12,47 @@ class FloatingToolbar extends StatelessWidget {
 
   static const List<Color> presetColors = [
     Colors.black,
+    Color(0xFF424242),
     Color(0xFFFF3B30),
-    Color(0xFF007AFF),
-    Color(0xFF34C759),
+    Color(0xFFFF2D55),
     Color(0xFFFF9500),
+    Color(0xFFFFCC00),
+    Color(0xFF34C759),
+    Color(0xFF30D158),
+    Color(0xFF007AFF),
+    Color(0xFF0A84FF),
+    Color(0xFF5E5CE6),
     Color(0xFFAF52DE),
+    Color(0xFFBF5AF2),
+    Color(0xFF8E8E93),
+    Colors.white,
   ];
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = ResponsiveUtil.isTablet(context);
+    final buttonSize = isTablet ? 56.0 : 48.0;
+    final smallButtonSize = isTablet ? 48.0 : 40.0;
+    final iconSize = isTablet ? 28.0 : 24.0;
+    final smallIconSize = isTablet ? 24.0 : 20.0;
+    final spacing = isTablet ? 12.0 : 8.0;
+    final padding = isTablet ? 20.0 : 16.0;
+    final verticalPadding = isTablet ? 16.0 : 12.0;
+    final colorButtonSize = isTablet ? 48.0 : 40.0;
+
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
         return Positioned(
-          bottom: 30,
-          left: 20,
-          right: 20,
+          bottom: isTablet ? 40 : 30,
+          left: isTablet ? 30 : 20,
+          right: isTablet ? 30 : 20,
           child: Center(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(isTablet ? 36 : 30),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: padding, vertical: verticalPadding),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -73,54 +93,65 @@ class FloatingToolbar extends StatelessWidget {
                           isActive: provider.mode == DrawingMode.pen,
                           onTap: () => provider.setMode(DrawingMode.pen),
                           isDarkMode: provider.isDarkMode,
+                          size: buttonSize,
+                          iconSize: iconSize,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: spacing),
                         _ModernToolButton(
                           icon: Icons.auto_fix_high_outlined,
                           isActive: provider.mode == DrawingMode.eraser,
                           onTap: () => provider.setMode(DrawingMode.eraser),
                           isDarkMode: provider.isDarkMode,
+                          size: buttonSize,
+                          iconSize: iconSize,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: spacing),
                         _ModernToolButton(
                           icon: Icons.select_all,
                           isActive: provider.mode == DrawingMode.select,
                           onTap: () => provider.setMode(DrawingMode.select),
                           isDarkMode: provider.isDarkMode,
+                          size: buttonSize,
+                          iconSize: iconSize,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: spacing),
                         _ModernToolButton(
                           icon: Icons.category_outlined,
                           isActive: provider.mode == DrawingMode.shape,
                           onTap: () => provider.setMode(DrawingMode.shape),
                           isDarkMode: provider.isDarkMode,
+                          size: buttonSize,
+                          iconSize: iconSize,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: spacing),
                         _ModernToolButton(
                           icon: Icons.text_fields,
                           isActive: provider.mode == DrawingMode.text,
                           onTap: () => provider.setMode(DrawingMode.text),
                           isDarkMode: provider.isDarkMode,
+                          size: buttonSize,
+                          iconSize: iconSize,
                         ),
 
                         // Auto-shape toggle (only show when pen mode)
                         if (provider.mode == DrawingMode.pen) ...[
-                          const SizedBox(width: 8),
+                          SizedBox(width: spacing),
                           _ModernToolButton(
                             icon: Icons.auto_awesome,
                             isActive: provider.autoShapeEnabled,
                             onTap: () => provider.toggleAutoShape(),
                             isDarkMode: provider.isDarkMode,
-                            isSmall: true,
+                            size: smallButtonSize,
+                            iconSize: smallIconSize,
                           ),
                         ],
 
                         // Divider
                         if (provider.selectionRect != null || provider.mode == DrawingMode.pen) ...[
-                          const SizedBox(width: 12),
+                          SizedBox(width: spacing * 1.5),
                           Container(
                             width: 1,
-                            height: 30,
+                            height: isTablet ? 36 : 30,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topCenter,
@@ -139,7 +170,7 @@ class FloatingToolbar extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: spacing * 1.5),
                         ],
 
                         // Shape conversion & OCR buttons (only show when selection exists)
@@ -151,8 +182,9 @@ class FloatingToolbar extends StatelessWidget {
                             color: const Color(0xFF5E5CE6),
                             isDarkMode: provider.isDarkMode,
                             isLoading: false,
+                            isTablet: isTablet,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: spacing),
                           _ModernActionButton(
                             icon: Icons.text_snippet,
                             label: '텍스트',
@@ -160,8 +192,9 @@ class FloatingToolbar extends StatelessWidget {
                             color: const Color(0xFF34C759),
                             isDarkMode: provider.isDarkMode,
                             isLoading: provider.isProcessingOCR,
+                            isTablet: isTablet,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: spacing),
                           _ModernActionButton(
                             icon: Icons.functions,
                             label: '수식',
@@ -169,8 +202,9 @@ class FloatingToolbar extends StatelessWidget {
                             color: const Color(0xFF007AFF),
                             isDarkMode: provider.isDarkMode,
                             isLoading: provider.isProcessingOCR,
+                            isTablet: isTablet,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: spacing),
                           _ModernActionButton(
                             icon: Icons.auto_awesome,
                             label: 'LaTeX',
@@ -178,18 +212,20 @@ class FloatingToolbar extends StatelessWidget {
                             color: const Color(0xFFFF9500),
                             isDarkMode: provider.isDarkMode,
                             isLoading: provider.isProcessingOCR,
+                            isTablet: isTablet,
                           ),
                         ],
 
                         // Color palette (only show when pen mode)
                         if (provider.mode == DrawingMode.pen && provider.selectionRect == null) ...[
                           ...presetColors.map((color) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
+                                padding: EdgeInsets.only(right: spacing),
                                 child: _ModernColorButton(
                                   color: color,
                                   isSelected: provider.currentColor == color,
                                   onTap: () => provider.setColor(color),
                                   isDarkMode: provider.isDarkMode,
+                                  size: colorButtonSize,
                                 ),
                               )),
                         ],
@@ -278,20 +314,20 @@ class _ModernToolButton extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
   final bool isDarkMode;
-  final bool isSmall;
+  final double size;
+  final double iconSize;
 
   const _ModernToolButton({
     required this.icon,
     required this.isActive,
     required this.onTap,
     required this.isDarkMode,
-    this.isSmall = false,
+    required this.size,
+    required this.iconSize,
   });
 
   @override
   Widget build(BuildContext context) {
-    final size = isSmall ? 40.0 : 48.0;
-    final iconSize = isSmall ? 20.0 : 24.0;
 
     return GestureDetector(
       onTap: onTap,
@@ -341,6 +377,7 @@ class _ModernActionButton extends StatelessWidget {
   final Color color;
   final bool isDarkMode;
   final bool isLoading;
+  final bool isTablet;
 
   const _ModernActionButton({
     required this.icon,
@@ -349,15 +386,21 @@ class _ModernActionButton extends StatelessWidget {
     required this.color,
     required this.isDarkMode,
     required this.isLoading,
+    required this.isTablet,
   });
 
   @override
   Widget build(BuildContext context) {
+    final horizontalPadding = isTablet ? 16.0 : 14.0;
+    final verticalPadding = isTablet ? 12.0 : 10.0;
+    final iconSize = isTablet ? 20.0 : 18.0;
+    final fontSize = isTablet ? 14.0 : 13.0;
+
     return GestureDetector(
       onTap: isLoading ? null : onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: verticalPadding),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -380,22 +423,22 @@ class _ModernActionButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isLoading)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
+              SizedBox(
+                width: iconSize,
+                height: iconSize,
+                child: const CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               )
             else
-              Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 6),
+              Icon(icon, color: Colors.white, size: iconSize),
+            SizedBox(width: isTablet ? 8 : 6),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 13,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),
@@ -412,12 +455,14 @@ class _ModernColorButton extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final bool isDarkMode;
+  final double size;
 
   const _ModernColorButton({
     required this.color,
     required this.isSelected,
     required this.onTap,
     required this.isDarkMode,
+    required this.size,
   });
 
   @override
@@ -427,8 +472,8 @@ class _ModernColorButton extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        width: 40,
-        height: 40,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: color,
           borderRadius: BorderRadius.circular(12),
@@ -453,7 +498,7 @@ class _ModernColorButton extends StatelessWidget {
                 ],
         ),
         child: isSelected
-            ? const Icon(Icons.check, color: Colors.white, size: 20)
+            ? Icon(Icons.check, color: Colors.white, size: size * 0.5)
             : null,
       ),
     );
