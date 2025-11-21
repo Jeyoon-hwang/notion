@@ -86,6 +86,34 @@ class LayerPanel extends StatelessWidget {
                             ),
                           ),
                           const Spacer(),
+                          // Auto layer management toggle
+                          Tooltip(
+                            message: provider.autoLayerManagement
+                                ? '자동 레이어 관리: 켜짐\n(콘텐츠 타입에 따라 자동 배정)'
+                                : '자동 레이어 관리: 꺼짐\n(수동 레이어 선택)',
+                            child: GestureDetector(
+                              onTap: () => provider.toggleAutoLayerManagement(),
+                              child: Container(
+                                padding: EdgeInsets.all(isTablet ? 8 : 6),
+                                decoration: BoxDecoration(
+                                  color: provider.autoLayerManagement
+                                      ? const Color(0xFF34C759).withOpacity(0.2)
+                                      : Colors.grey.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(isTablet ? 10 : 8),
+                                ),
+                                child: Icon(
+                                  provider.autoLayerManagement
+                                      ? Icons.auto_awesome
+                                      : Icons.auto_awesome_outlined,
+                                  size: isTablet ? 20 : 18,
+                                  color: provider.autoLayerManagement
+                                      ? const Color(0xFF34C759)
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: isTablet ? 12 : 8),
                           GestureDetector(
                             onTap: () => _showAddLayerDialog(context, provider),
                             child: Container(

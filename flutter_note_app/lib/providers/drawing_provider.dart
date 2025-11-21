@@ -319,6 +319,70 @@ class DrawingProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ============================================================================
+  // INTELLIGENT LAYER MANAGEMENT
+  // ============================================================================
+
+  /// Get the auto layer management setting
+  bool get autoLayerManagement => _settings.autoLayerManagement;
+
+  /// Toggle auto layer management (for power users who want manual control)
+  void toggleAutoLayerManagement() {
+    _settings = _settings.copyWith(
+      autoLayerManagement: !_settings.autoLayerManagement,
+    );
+    notifyListeners();
+  }
+
+  /// Find the first layer of a specific type
+  /// Returns the layer index, or -1 if not found
+  int _findLayerByType(LayerType type) {
+    for (int i = 0; i < _layers.length; i++) {
+      if (_layers[i].type == type) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  /// Automatically switch to the appropriate layer based on content type
+  /// This is the core of intelligent layer management
+  void _autoSelectLayerForContent(LayerType contentType) {
+    // Skip if auto layer management is disabled
+    if (!_settings.autoLayerManagement) return;
+
+    // Find the layer for this content type
+    final layerIndex = _findLayerByType(contentType);
+
+    if (layerIndex >= 0 && layerIndex < _layers.length) {
+      // Switch to this layer if it's not locked
+      if (!_layers[layerIndex].isLocked) {
+        _currentLayerIndex = layerIndex;
+        print('Auto-switched to ${_layers[layerIndex].name} layer for ${contentType.name} content');
+      }
+    } else {
+      // Layer doesn't exist - create it automatically
+      addLayer(contentType);
+      _currentLayerIndex = _layers.length - 1;
+      print('Auto-created ${contentType.name} layer');
+    }
+  }
+
+  /// Prepare layer for handwriting (pen/stylus input)
+  void _prepareForHandwriting() {
+    _autoSelectLayerForContent(LayerType.writing);
+  }
+
+  /// Prepare layer for decoration (shapes, stickers, images)
+  void _prepareForDecoration() {
+    _autoSelectLayerForContent(LayerType.decoration);
+  }
+
+  /// Prepare layer for background content (PDFs, background images)
+  void _prepareForBackground() {
+    _autoSelectLayerForContent(LayerType.background);
+  }
+
   void deleteLayer(int index) {
     if (index >= 0 && index < _layers.length && _layers.length > 1) {
       final removedLayer = _layers[index];
@@ -394,14 +458,23 @@ class DrawingProvider extends ChangeNotifier {
     }
 
     if (_mode == DrawingMode.shape) {
+      // Intelligent layer: shapes go to decoration layer
+      _prepareForDecoration();
       _shapeStartPoint = offset;
       notifyListeners();
       return;
     }
 
     if (_mode == DrawingMode.text) {
+      // Intelligent layer: text goes to writing layer
+      _prepareForHandwriting();
       startTextInput(offset);
       return;
+    }
+
+    // Intelligent layer: pen/eraser strokes go to writing layer
+    if (_mode == DrawingMode.pen || _mode == DrawingMode.eraser) {
+      _prepareForHandwriting();
     }
 
     _currentStroke.clear();
