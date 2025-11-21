@@ -15,6 +15,7 @@ import '../services/shape_recognition_service.dart';
 import '../services/shape_drawing_service.dart';
 import '../services/audio_recording_service.dart';
 import '../services/note_service.dart';
+import '../services/version_manager.dart';
 
 enum DrawingMode { pen, eraser, select, shape, text }
 
@@ -74,6 +75,10 @@ class DrawingProvider extends ChangeNotifier {
   // Page layout management
   final PageManager _pageManager = PageManager();
   PageManager get pageManager => _pageManager;
+
+  // Version control management (Git-like system)
+  final VersionManager _versionManager = VersionManager();
+  VersionManager get versionManager => _versionManager;
 
   // Shape drawing
   ShapeType2D _selectedShape2D = ShapeType2D.circle;

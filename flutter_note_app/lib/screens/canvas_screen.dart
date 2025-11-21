@@ -6,6 +6,7 @@ import '../widgets/slider_panel.dart';
 import '../widgets/shape_palette.dart';
 import '../widgets/layer_panel.dart';
 import '../widgets/page_navigation.dart';
+import '../widgets/version_control_panel.dart';
 import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
 
@@ -19,6 +20,7 @@ class CanvasScreen extends StatefulWidget {
 class _CanvasScreenState extends State<CanvasScreen> {
   final GlobalKey _repaintBoundaryKey = GlobalKey();
   bool _showGestureHint = false;
+  bool _showVersionControl = false; // Toggle for version control panel
 
   @override
   void initState() {
@@ -60,6 +62,48 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   const ShapePalette(),
                   const LayerPanel(),
                   const PageNavigation(),
+                  if (_showVersionControl) const VersionControlPanel(),
+                  // Version control toggle button
+                  Positioned(
+                    right: 20,
+                    bottom: 20,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showVersionControl = !_showVersionControl;
+                        });
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _showVersionControl
+                              ? const Color(0xFF667EEA)
+                              : provider.isDarkMode
+                                  ? Colors.black.withOpacity(0.7)
+                                  : Colors.white.withOpacity(0.7),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF667EEA).withOpacity(0.5),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.account_tree,
+                          color: _showVersionControl
+                              ? Colors.white
+                              : const Color(0xFF667EEA),
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  ),
                   if (_showGestureHint) _buildGestureHint(),
                   if (provider.isSelectMode) _buildSelectionHint(),
                   if (provider.isShapeMode) _buildShapeHint(),
