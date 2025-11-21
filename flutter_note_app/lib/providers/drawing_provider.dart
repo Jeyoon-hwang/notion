@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 import '../models/drawing_stroke.dart';
 import '../models/text_object.dart';
 import '../models/app_settings.dart';
+import '../models/layer.dart';
 import 'dart:typed_data';
 import 'package:gal/gal.dart';
 import '../services/ocr_service.dart';
@@ -13,6 +14,10 @@ import '../services/shape_drawing_service.dart';
 enum DrawingMode { pen, eraser, select, shape, text }
 
 class DrawingProvider extends ChangeNotifier {
+  // Layer system
+  final List<Layer> _layers = [];
+  int _currentLayerIndex = 1; // Default to writing layer
+
   final List<DrawingStroke> _strokes = [];
   final List<TextObject> _textObjects = [];
   final List<List<DrawingStroke>> _history = [];
@@ -28,9 +33,11 @@ class DrawingProvider extends ChangeNotifier {
   Color _currentColor = Colors.black;
   double _lineWidth = 3.0;
   double _opacity = 1.0;
+  double _pressureStabilization = 0.5; // 0 = 사실적, 1 = 완전 안정화
   DrawingMode _mode = DrawingMode.pen;
   bool _isDarkMode = false;
   bool _autoShapeEnabled = false;
+  bool _focusMode = false; // 포커스 모드
 
   // Text input
   Offset? _textInputPosition;
@@ -56,8 +63,39 @@ class DrawingProvider extends ChangeNotifier {
   double _triangleAngle3 = 60.0;
   Offset? _shapeStartPoint;
 
+  // Constructor - Initialize default layers
+  DrawingProvider() {
+    _initializeLayers();
+  }
+
+  void _initializeLayers() {
+    _layers.addAll([
+      Layer(
+        id: 'background_0',
+        name: '배경',
+        type: LayerType.background,
+      ),
+      Layer(
+        id: 'writing_1',
+        name: '필기',
+        type: LayerType.writing,
+      ),
+      Layer(
+        id: 'decoration_2',
+        name: '꾸미기',
+        type: LayerType.decoration,
+      ),
+    ]);
+    _currentLayerIndex = 1; // 필기 레이어가 기본
+  }
+
   // Getters
-  List<DrawingStroke> get strokes => _strokes;
+  List<Layer> get layers => _layers;
+  Layer get currentLayer => _layers[_currentLayerIndex];
+  int get currentLayerIndex => _currentLayerIndex;
+  List<DrawingStroke> get strokes => _getAllVisibleStrokes();
+  double get pressureStabilization => _pressureStabilization;
+  bool get focusMode => _focusMode;
   List<TextObject> get textObjects => _textObjects;
   AppSettings get settings => _settings;
   Color get currentColor => _currentColor;
@@ -113,6 +151,89 @@ class DrawingProvider extends ChangeNotifier {
 
   void toggleDarkMode() {
     _isDarkMode = !_isDarkMode;
+    notifyListeners();
+  }
+
+  void setPressureStabilization(double value) {
+    _pressureStabilization = value.clamp(0.0, 1.0);
+    notifyListeners();
+  }
+
+  void toggleFocusMode() {
+    _focusMode = !_focusMode;
+    notifyListeners();
+  }
+
+  // Layer management methods
+  List<DrawingStroke> _getAllVisibleStrokes() {
+    List<DrawingStroke> allStrokes = [];
+    for (var layer in _layers) {
+      if (layer.isVisible) {
+        allStrokes.addAll(layer.strokes);
+      }
+    }
+    return allStrokes;
+  }
+
+  void selectLayer(int index) {
+    if (index >= 0 && index < _layers.length) {
+      if (!_layers[index].isLocked) {
+        _currentLayerIndex = index;
+        notifyListeners();
+      }
+    }
+  }
+
+  void toggleLayerVisibility(int index) {
+    if (index >= 0 && index < _layers.length) {
+      _layers[index].isVisible = !_layers[index].isVisible;
+      notifyListeners();
+    }
+  }
+
+  void toggleLayerLock(int index) {
+    if (index >= 0 && index < _layers.length) {
+      _layers[index].isLocked = !_layers[index].isLocked;
+      notifyListeners();
+    }
+  }
+
+  void setLayerOpacity(int index, double opacity) {
+    if (index >= 0 && index < _layers.length) {
+      _layers[index].opacity = opacity.clamp(0.0, 1.0);
+      notifyListeners();
+    }
+  }
+
+  void addLayer(LayerType type) {
+    final newId = '${type.name}_${DateTime.now().millisecondsSinceEpoch}';
+    _layers.add(Layer(
+      id: newId,
+      name: '${type == LayerType.background ? '배경' : type == LayerType.writing ? '필기' : '꾸미기'} ${_layers.length + 1}',
+      type: type,
+    ));
+    notifyListeners();
+  }
+
+  void deleteLayer(int index) {
+    if (index >= 0 && index < _layers.length && _layers.length > 1) {
+      _layers.removeAt(index);
+      if (_currentLayerIndex >= _layers.length) {
+        _currentLayerIndex = _layers.length - 1;
+      }
+      notifyListeners();
+    }
+  }
+
+  void reorderLayers(int oldIndex, int newIndex) {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final layer = _layers.removeAt(oldIndex);
+    _layers.insert(newIndex, layer);
+    if (_currentLayerIndex == oldIndex) {
+      _currentLayerIndex = newIndex;
+    }
     notifyListeners();
   }
 
@@ -316,7 +437,12 @@ class DrawingProvider extends ChangeNotifier {
           opacity: _opacity,
           isEraser: false,
         );
-        _strokes.add(stroke);
+        // Add stroke to current layer instead of _strokes
+        if (_currentLayerIndex >= 0 && _currentLayerIndex < _layers.length) {
+          _layers[_currentLayerIndex].strokes.add(stroke);
+        } else {
+          _strokes.add(stroke);  // Fallback
+        }
         _saveState();
       }
 
@@ -363,7 +489,12 @@ class DrawingProvider extends ChangeNotifier {
         );
       }
 
-      _strokes.add(stroke);
+      // Add stroke to current layer instead of _strokes
+      if (_currentLayerIndex >= 0 && _currentLayerIndex < _layers.length) {
+        _layers[_currentLayerIndex].strokes.add(stroke);
+      } else {
+        _strokes.add(stroke);  // Fallback
+      }
       _saveState();
       _currentStroke.clear();
     }

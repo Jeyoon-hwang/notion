@@ -4,6 +4,7 @@ import '../widgets/header.dart';
 import '../widgets/floating_toolbar.dart';
 import '../widgets/slider_panel.dart';
 import '../widgets/shape_palette.dart';
+import '../widgets/layer_panel.dart';
 import 'package:provider/provider.dart';
 import '../providers/drawing_provider.dart';
 
@@ -56,6 +57,7 @@ class _CanvasScreenState extends State<CanvasScreen> {
                   FloatingToolbar(repaintBoundaryKey: _repaintBoundaryKey),
                   const SliderPanel(),
                   const ShapePalette(),
+                  const LayerPanel(),
                   if (_showGestureHint) _buildGestureHint(),
                   if (provider.isSelectMode) _buildSelectionHint(),
                   if (provider.isShapeMode) _buildShapeHint(),
