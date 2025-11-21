@@ -10,6 +10,7 @@ import '../models/note.dart';
 import '../models/page_layout.dart';
 import '../widgets/text_input_dialog.dart';
 import '../services/template_renderer.dart';
+import '../services/hybrid_input_detector.dart';
 
 /// Intelligently inverts colors for dark mode (text version)
 Color _invertColorForText(Color color) {
@@ -40,11 +41,15 @@ class DrawingCanvas extends StatefulWidget {
 class _DrawingCanvasState extends State<DrawingCanvas> {
   Offset? _twoFingerStartPosition;
   int _pointerCount = 0;
+  HybridInputDetector? _hybridDetector;
 
   @override
   Widget build(BuildContext context) {
     return Consumer<DrawingProvider>(
       builder: (context, provider, child) {
+        // Initialize hybrid input detector
+        _hybridDetector ??= provider.hybridInputDetector;
+
         // Show text input dialog when text input position is set
         if (provider.textInputPosition != null) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -69,11 +74,8 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
 
                 // Only start drawing with one finger
                 if (_pointerCount == 1) {
-                  provider.startDrawing(
-                    event.localPosition,
-                    event.pressure,
-                    isPen: event.kind == PointerDeviceKind.stylus,
-                  );
+                  // Use hybrid input detector for automatic mode switching
+                  _hybridDetector?.onPointerDown(event);
                 }
               },
               onPointerMove: (event) {
@@ -123,6 +125,9 @@ class _DrawingCanvasState extends State<DrawingCanvas> {
                 _pointerCount--;
 
                 if (_pointerCount < 0) _pointerCount = 0;
+
+                // Notify hybrid detector
+                _hybridDetector?.onPointerUp(event);
 
                 // Reset two-finger tracking
                 if (_pointerCount < 2) {
