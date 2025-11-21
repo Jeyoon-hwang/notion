@@ -13,9 +13,6 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Set up local.properties
-        script: |
-          echo "flutter.sdk=$HOME/programs/flutter" > "$CM_BUILD_DIR/flutter_note_app/android/local.properties"
       - name: Get Flutter packages
         script: |
           cd flutter_note_app
