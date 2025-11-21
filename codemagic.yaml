@@ -49,6 +49,10 @@ workflows:
         script: |
           cd flutter_note_app
           flutter packages pub get
+      - name: Generate Flutter files
+        script: |
+          cd flutter_note_app
+          flutter precache --ios
       - name: Install pods
         script: |
           cd flutter_note_app/ios
